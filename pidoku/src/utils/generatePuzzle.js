@@ -1,0 +1,16 @@
+import { getSudoku } from "sudoku-gen";
+
+// Convert puzzle string to 2D array
+function stringToGrid(str) {
+  return Array.from({ length: 9 }, (_, i) =>
+    str.slice(i * 9, (i + 1) * 9).split("").map(v => (v === "-" ? "" : v))
+  );
+}
+
+export function generatePuzzle(difficulty = "easy") {
+  const { puzzle, solution } = getSudoku(difficulty);
+  return {
+    puzzle: stringToGrid(puzzle),
+    solution: stringToGrid(solution),
+  };
+}
