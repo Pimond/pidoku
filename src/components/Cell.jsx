@@ -1,5 +1,11 @@
-import { motion } from "motion/react"
-
+import { AnimatePresence, motion } from "motion/react"
+function getBgColor({ isConflict, isSelected, isSameRow, isSameCol, fixed }) {
+  if (isConflict) return "#fee2e2";        // bg-red-100
+  if (isSelected) return "#f0f9ff";        // bg-blue-50
+  if (isSameRow || isSameCol) return "#dbeafe"; // bg-blue-100
+  if (fixed) return "#e5e7eb";             // bg-gray-300
+  return "#fff";                           // bg-white
+}
 export default function Cell({
   cell,
   row,
@@ -14,25 +20,36 @@ export default function Cell({
 }) {
   const { value, notes, fixed } = cell;
 
-  // Compose extra highlight classes
-  let highlight = "";
+  let bg = "bg-white";
+  let text = "text-blue-500";
+  let font = ""
   if (isConflict && isSelected) {
-    highlight = "text-red-700";  
-  }
-  else if (isSelected) {
-    highlight = "bg-yellow-100 font-bold text-gray-800";
-  } else if (isSameValue) {
-    highlight = "font-bold";
-  } else if (isSameRow || isSameCol ) {
-    highlight = "bg-blue-100";
+    text = "text-red-600";
+  } else if (isConflict) {
+    text = "text-red-700";
   } else if (fixed) {
-    highlight = "bg-gray-300";
-  } else {
-    highlight = "bg-white";
+    text = "text-gray-800";
   }
 
+  if (isSelected) {
+    font = "font-bold"
+  } else if (isSameValue) {
+    font = "font-bold"
+  }
+
+  if (isSelected) {
+    bg = "bg-blue-20";
+  } else if (isSameRow || isSameCol) {
+    bg = "bg-blue-100";
+  } else if (fixed) {
+    bg = "bg-gray-300"
+  }
+
+
+  const highlight = `${bg} ${text}`;
+
   const base =
-    "w-8 h-8 text-center text-lg cursor-pointer relative flex items-center justify-center";
+    "w-12 h-12 text-center text-lg cursor-pointer relative flex items-center justify-center";
   const border =
     `border 
     ${col % 3 === 0 ? "border-l-2" : "border-l"} 
@@ -42,41 +59,59 @@ export default function Cell({
     border-gray-400`;
 
   return (
-    <div
+    <motion.div
+      animate={{ backgroundColor: getBgColor({ isConflict, isSelected, isSameRow, isSameCol, fixed: cell.fixed }) }}
+      transition={{ duration: 0.2 }}
       className={`${base} ${border} ${highlight}`}
       onClick={() => onSelect(row, col)}
       tabIndex={0}
       role="button"
-      aria-label={`Cell ${row + 1},${col + 1}`}
-    >
+      aria-label={`Cell ${row + 1},${col + 1}`}>
+
       {value ? (
-        <motion.div
-        key={cell.value + (isConflict ? "-conflict" : "")}
-        initial={{ scale: 0, transition: {delay: 0.9, duration: 1} }} animate={{ scale: 1, x: isConflict && cell.value ? [0, -4, 4, -4, 4, 0] : 0 }}
-        transition={{x: isConflict && cell.value
-      ? { duration: 0.3, times: [0, 0.2, 0.4, 0.6, 0.8, 1], ease: "easeInOut" }
-      : {},}}
-        whileHover={{ scale: 1.2, transition: {delay: 0, duration:0.1}}}
-        whileTap={{ scale: 0.95, transition: {delay: 0, duration: 0.1}}}
-        onHoverStart={() => console.log('hover started!')}
-        
-        >
-          <span className={`text-2xl ${fixed ? "font text-gray-800" : ""}`}>{value}</span>        </motion.div>
+        <AnimatePresence mode="wait">
+
+          <motion.div
+            key={cell.value}
+            initial={{ scale: 0, transition: { delay: 0.9, duration: 1 } }} animate={{ scale: 1, x: isConflict && cell.value ? [0, -4, 4, -4, 4, 0] : 0 }}
+            exit={{ scale: 0, opacity: 0, transition: { duration: 0.15 } }}
+            transition={{
+              x: isConflict && cell.value
+                ? { duration: 0.3, times: [0, 0.2, 0.4, 0.6, 0.8, 1], ease: "easeInOut" }
+                : {},
+              scale: { type: "spring", duration: 0.18 },
+              opacity: { duration: 0.13 }
+            }}
+            whileHover={{ scale: 1.2, transition: { delay: 0, duration: 0.1 } }}
+            whileTap={{ scale: 0.95, transition: { delay: 0, duration: 0.1 } }} >
+
+            <motion.span className={`text-2xl ${text} ${font}`}>{value}</motion.span>
+
+          </motion.div>
+        </AnimatePresence >
 
       ) : notes && notes.length > 0 ? (
-      <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 text-xs p-0.5 text-gray-600">
-          {Array.from({ length: 9 }).map((_, i) =>
-            notes.includes((i + 1).toString()) ? (
-              <span key={i} className="flex items-center justify-center">
-                {i + 1}
-              </span>
-            ) : (
-              <span key={i}></span>
-            )
-          )}
-        </div>
-        
+        <motion.div
+          className="absolute inset-0 grid grid-cols-3 grid-rows-3 text-xs p-0.6 text-gray-600">
+            {Array.from({ length: 9 }).map((_, i) =>
+              notes.includes((i + 1).toString()) ? (
+                <motion.span
+
+
+                  key={i} className="flex items-center justify-center">
+                  {i + 1}
+                </motion.span>
+              ) : (
+                <motion.span
+
+                  key={i}></motion.span>
+              )
+
+            )}
+        </motion.div>
+
       ) : null}
-    </div>
+
+    </motion.div>
   );
 }

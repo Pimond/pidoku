@@ -10,27 +10,27 @@ export default function Board({ board, selected, onCellChange, onCellSelect, isF
       ? board[selectedRow][selectedCol].value
       : "";
   function hasConflict(board, row, col) {
-        const val = board[row][col].value;
-        if (!val) return false;
+    const val = board[row][col].value;
+    if (!val) return false;
 
-        // Check row
-        for (let c = 0; c < 9; c++) {
-          if (c !== col && board[row][c].value === val) return true;
-        }
-        // Check col
-        for (let r = 0; r < 9; r++) {
-          if (r !== row && board[r][col].value === val) return true;
-        }
-        // Check box
-        const boxRow = Math.floor(row / 3) * 3;
-        const boxCol = Math.floor(col / 3) * 3;
-        for (let r = boxRow; r < boxRow + 3; r++) {
-          for (let c = boxCol; c < boxCol + 3; c++) {
-            if ((r !== row || c !== col) && board[r][c].value === val) return true;
-          }
+    // Check row
+    for (let c = 0; c < 9; c++) {
+      if (c !== col && board[row][c].value === val) return true;
+    }
+    // Check col
+    for (let r = 0; r < 9; r++) {
+      if (r !== row && board[r][col].value === val) return true;
+    }
+    // Check box
+    const boxRow = Math.floor(row / 3) * 3;
+    const boxCol = Math.floor(col / 3) * 3;
+    for (let r = boxRow; r < boxRow + 3; r++) {
+      for (let c = boxCol; c < boxCol + 3; c++) {
+        if ((r !== row || c !== col) && board[r][c].value === val) return true;
+      }
+    }
+    return false;
   }
-  return false;
-}
   // Helper to get box index for a cell
   const getBoxIndex = (row, col) => `${Math.floor(row / 3)}-${Math.floor(col / 3)}`;
   const selectedBox = (selectedRow !== null && selectedCol !== null)

@@ -52,8 +52,9 @@ export default function App() {
   function handleNumberInput(val) {
     const [row, col] = selected;
     if (row === null || col === null) return;
-    setBoard(prev =>
-      prev.map((r, i) =>
+    setBoard(prev => {
+      // Step 1: Place value or note in the cell
+      let newBoard = prev.map((r, i) =>
         r.map((cell, j) => {
           if (i !== row || j !== col || cell.fixed) return cell;
           if (noteMode) {
@@ -66,8 +67,29 @@ export default function App() {
             return { ...cell, value: val, notes: [] }; // Clear notes when writing value
           }
         })
-      )
-    );
+      );
+      // Step 2: If not noteMode, delete val from notes in the same row/col/box
+      if (!noteMode) {
+        // Box coordinates
+        const boxRow = Math.floor(row / 3) * 3;
+        const boxCol = Math.floor(col / 3) * 3;
+        newBoard = newBoard.map((r, i) =>
+          r.map((cell, j) => {
+            if ((i === row && j === col) || cell.fixed) return cell;
+            const sameRow = i === row;
+            const sameCol = j === col;
+            const sameBox =
+              i >= boxRow && i < boxRow + 3 &&
+              j >= boxCol && j < boxCol + 3;
+            if ((sameRow || sameCol || sameBox) && cell.notes.includes(val)) {
+              return { ...cell, notes: cell.notes.filter(n => n !== val) };
+            }
+            return cell;
+          })
+        );
+      }
+      return newBoard;
+    });
   }
 
   function handleErase() {
@@ -105,52 +127,57 @@ export default function App() {
   }
 
   function checkCompletion() {
-  // Returns true if every cell has a value
-  for (let i = 0; i < 9; i++) {
-    for (let j = 0; j < 9; j++) {
-      if (!board[i][j].value) {
-        return false;
+    // Returns true if every cell has a value
+    for (let i = 0; i < 9; i++) {
+      for (let j = 0; j < 9; j++) {
+        if (!board[i][j].value) {
+          return false;
+        }
       }
     }
+    return true;
   }
-  return true;
-}
 
-function checkCorrect() {
-  // Compare board to solution
-  for (let i = 0; i < 9; i++) {
-    for (let j = 0; j < 9; j++) {
-      if (board[i][j].value !== (solution[i][j] || "")) {
-        return false;
+  function checkCorrect() {
+    // Compare board to solution
+    for (let i = 0; i < 9; i++) {
+      for (let j = 0; j < 9; j++) {
+        if (board[i][j].value !== (solution[i][j] || "")) {
+          return false;
+        }
       }
     }
+    return true;
   }
-  return true;
-}
 
-useEffect(() => {
-  if (checkCompletion()) {
-    setCompleted(true);
-    setCorrect(checkCorrect());
-  } else {
-    setCompleted(false);
-    setCorrect(false);
-  }
-}, [board, solution]);
+  useEffect(() => {
+    if (checkCompletion()) {
+      setCompleted(true);
+      setCorrect(checkCorrect());
+    } else {
+      setCompleted(false);
+      setCorrect(false);
+    }
+  }, [board, solution]);
 
-useEffect(() => {
-  if (!timerActive) return;
-  const interval = setInterval(() => {
-    setSecondsElapsed((secs) => secs + 1);
-  }, 1000);
-  return () => clearInterval(interval);
-}, [timerActive]);
+  useEffect(() => {
+    if (!timerActive) return;
+    const interval = setInterval(() => {
+      setSecondsElapsed((secs) => secs + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [timerActive]);
 
-useEffect(() => {
-  if (completed && correct) {
-    setTimerActive(false);
-  }
-}, [completed, correct]);
+  useEffect(() => {
+    if (completed && correct) {
+      setTimerActive(false);
+    }
+  }, [completed, correct]);
+
+  const selectedCellNotes =
+    selected[0] !== null && selected[1] !== null
+      ? board[selected[0]][selected[1]].notes
+      : [];
 
 
   return (
@@ -165,7 +192,7 @@ useEffect(() => {
 
       {completed && correct && (
         <>
-    <Confetti width={window.innerWidth} height={window.innerHeight} numberOfPieces={400} />
+          <Confetti width={window.innerWidth} height={window.innerHeight} numberOfPieces={400} />
           <div className="mb-4 px-6 py-3 bg-green-200 text-green-800 rounded shadow text-xl font-bold">
             🎉 You solved it!
           </div>
@@ -177,8 +204,8 @@ useEffect(() => {
         </div>
       )}
       <div className="mb-4 text-xl font-mono text-gray-700">
-      Time: {formatTime(secondsElapsed)}
-    </div>
+        Time: {formatTime(secondsElapsed)}
+      </div>
       <Board
         board={board}
         selected={selected}
@@ -192,6 +219,8 @@ useEffect(() => {
         onErase={handleErase}
         noteMode={noteMode}
         onToggleNoteMode={() => setNoteMode(x => !x)}
+        highlightedNotes={noteMode ? selectedCellNotes : []}
+
       />
     </div>
   );
