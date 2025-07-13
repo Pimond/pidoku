@@ -84,6 +84,8 @@ export default function App() {
     );
   }
 
+
+
   function handleNewPuzzle() {
     const next = generatePuzzle("easy"); // Change as needed
     const newPuzzle = next.puzzle.map((row) =>
