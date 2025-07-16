@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Board from "./components/Board";
 import NumberPad from "./components/NumberPad";
+import AuthButtons from "./components/AuthButtons.jsx";
 import { generatePuzzle } from "./utils/generatePuzzle";
 import Confetti from "react-confetti";
 
@@ -32,18 +33,6 @@ export default function App() {
   const [secondsElapsed, setSecondsElapsed] = useState(0);
   const [timerActive, setTimerActive] = useState(true);
 
-
-  // Cells that can't be edited (the clues)
-  const isFixed = (row, col) => puzzle[row][col] !== "";
-
-  function handleCellChange(row, col, value) {
-    if (isFixed(row, col)) return;
-    setBoard(prev =>
-      prev.map((r, i) =>
-        r.map((cell, j) => (i === row && j === col ? value : cell))
-      )
-    );
-  }
 
   function handleCellSelect(row, col) {
     setSelected([row, col]);
@@ -182,7 +171,10 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 flex flex-col items-center">
-      <h1 className="text-3xl font-bold mb-8">Pidoku</h1>
+      <div className="flex items-center mb-8">
+        <h1 className="text-3xl font-bold">Pidoku</h1>
+        <AuthButtons />
+      </div>
       <button
         onClick={handleNewPuzzle}
         className="mb-4 px-4 py-2 bg-blue-200 hover:bg-blue-300 rounded font-bold"
@@ -209,9 +201,7 @@ export default function App() {
       <Board
         board={board}
         selected={selected}
-        onCellChange={handleCellChange}
         onCellSelect={handleCellSelect}
-        isFixed={isFixed}
       />
 
       <NumberPad
