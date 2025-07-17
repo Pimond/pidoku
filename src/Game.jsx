@@ -6,9 +6,10 @@ import Confetti from "react-confetti";
 import { useAuth } from "./AuthProvider";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { firestore } from "./firebase";
+import { AnimatePresence, motion as Motion } from "motion/react";
 
-function getInitialPuzzle() {
-  const next = generatePuzzle("easy");
+function createPuzzle(diff) {
+  const next = generatePuzzle(diff);
   const puzzle = next.puzzle.map((row) =>
     row.map((cell) => ({
       value: cell,
@@ -27,8 +28,10 @@ function formatTime(secs) {
 
 export default function Game() {
   const { user } = useAuth();
-  const [{ puzzle, solution }, setPuzzleData] = useState(getInitialPuzzle());
-  const [board, setBoard] = useState(puzzle.map((row) => [...row]));
+  const [difficulty, setDifficulty] = useState("easy");
+  const [stage, setStage] = useState("select");
+  const [puzzleData, setPuzzleData] = useState(null);
+  const [board, setBoard] = useState(null);
   const [selected, setSelected] = useState([null, null]);
   const [noteMode, setNoteMode] = useState(false);
   const [completed, setCompleted] = useState(false);
@@ -91,25 +94,20 @@ export default function Game() {
   }
 
   function handleNewPuzzle() {
-    const next = generatePuzzle("easy");
-    const newPuzzle = next.puzzle.map((row) =>
-      row.map((cell) => ({
-        value: cell,
-        notes: [],
-        fixed: cell !== "",
-      }))
-    );
-    setPuzzleData({ puzzle: newPuzzle, solution: next.solution });
-    setBoard(newPuzzle.map((row) => row.map((cell) => ({ ...cell }))));
+    const next = createPuzzle(difficulty);
+    setPuzzleData(next);
+    setBoard(next.puzzle.map((row) => row.map((cell) => ({ ...cell }))));
     setSelected([null, null]);
     setCompleted(false);
     setCorrect(false);
     setSecondsElapsed(0);
     setTimerActive(true);
     setRecorded(false);
+    setStage("play");
   }
 
   function checkCompletion() {
+    if (!board) return false;
     for (let i = 0; i < 9; i++) {
       for (let j = 0; j < 9; j++) {
         if (!board[i][j].value) return false;
@@ -119,6 +117,8 @@ export default function Game() {
   }
 
   function checkCorrect() {
+    if (!board || !puzzleData) return false;
+    const { solution } = puzzleData;
     for (let i = 0; i < 9; i++) {
       for (let j = 0; j < 9; j++) {
         if (board[i][j].value !== (solution[i][j] || "")) return false;
@@ -136,7 +136,7 @@ export default function Game() {
       setCompleted(false);
       setCorrect(false);
     }
-  }, [board, solution]);
+  }, [board, puzzleData]);
 
   useEffect(() => {
     if (!timerActive) return;
@@ -151,7 +151,7 @@ export default function Game() {
       setTimerActive(false);
       if (user && !recorded) {
         addDoc(collection(firestore, "users", user.uid, "games"), {
-          difficulty: "easy",
+          difficulty,
           time: secondsElapsed,
           completedAt: serverTimestamp(),
         });
@@ -161,40 +161,100 @@ export default function Game() {
   }, [completed, correct, user, secondsElapsed, recorded]);
 
   const selectedCellNotes =
-    selected[0] !== null && selected[1] !== null
+    board && selected[0] !== null && selected[1] !== null
       ? board[selected[0]][selected[1]].notes
       : [];
 
   return (
     <div className="p-4 flex flex-col items-center">
-      <button
-        onClick={handleNewPuzzle}
-        className="mb-4 px-4 py-2 bg-blue-200 hover:bg-blue-300 rounded font-bold"
-      >
-        New Puzzle
-      </button>
-      {completed && correct && (
-        <>
-          <Confetti width={window.innerWidth} height={window.innerHeight} numberOfPieces={400} />
-          <div className="mb-4 px-6 py-3 bg-green-200 text-green-800 rounded shadow text-xl font-bold">
-            🎉 You solved it!
-          </div>
-        </>
-      )}
-      {completed && !correct && (
-        <div className="mb-4 px-6 py-3 bg-red-200 text-red-800 rounded shadow text-xl font-bold">
-          Puzzle is filled, but something's wrong!
-        </div>
-      )}
-      <div className="mb-4 text-xl font-mono text-gray-700">Time: {formatTime(secondsElapsed)}</div>
-      <Board board={board} selected={selected} onCellSelect={handleCellSelect} />
-      <NumberPad
-        onInput={handleNumberInput}
-        onErase={handleErase}
-        noteMode={noteMode}
-        onToggleNoteMode={() => setNoteMode((x) => !x)}
-        highlightedNotes={noteMode ? selectedCellNotes : []}
-      />
+      <AnimatePresence mode="wait">
+        {stage === "select" ? (
+          <Motion.div
+            key="select"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.2 }}
+            className="flex flex-col items-center mt-10"
+          >
+            <h2 className="text-2xl font-bold mb-4">Choose Difficulty</h2>
+            <div className="flex gap-4 mb-4">
+              {["easy", "medium", "hard"].map((diff) => (
+                <Motion.button
+                  key={diff}
+                  whileTap={{ scale: 0.9 }}
+                  whileHover={{ scale: 1.05 }}
+                  onClick={() => setDifficulty(diff)}
+                  className={`px-4 py-2 rounded shadow ${
+                    difficulty === diff
+                      ? "bg-blue-400 text-white"
+                      : "bg-gray-200"
+                  }`}
+                >
+                  {diff.charAt(0).toUpperCase() + diff.slice(1)}
+                </Motion.button>
+              ))}
+            </div>
+            <Motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={handleNewPuzzle}
+              className="px-6 py-2 bg-green-400 rounded text-white font-bold"
+            >
+              Start
+            </Motion.button>
+          </Motion.div>
+        ) : (
+          <Motion.div
+            key="game"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="flex flex-col items-center w-full"
+          >
+            <button
+              onClick={handleNewPuzzle}
+              className="mb-4 px-4 py-2 bg-blue-200 hover:bg-blue-300 rounded font-bold"
+            >
+              New Puzzle
+            </button>
+            {completed && correct && (
+              <>
+                <Confetti
+                  width={window.innerWidth}
+                  height={window.innerHeight}
+                  numberOfPieces={400}
+                />
+                <div className="mb-4 px-6 py-3 bg-green-200 text-green-800 rounded shadow text-xl font-bold">
+                  🎉 You solved it!
+                </div>
+              </>
+            )}
+            {completed && !correct && (
+              <div className="mb-4 px-6 py-3 bg-red-200 text-red-800 rounded shadow text-xl font-bold">
+                Puzzle is filled, but something's wrong!
+              </div>
+            )}
+            <div className="mb-4 text-xl font-mono text-gray-700">Time: {formatTime(secondsElapsed)}</div>
+            {board && (
+              <Board
+                board={board}
+                selected={selected}
+                onCellSelect={handleCellSelect}
+              />
+            )}
+            {board && (
+              <NumberPad
+                onInput={handleNumberInput}
+                onErase={handleErase}
+                noteMode={noteMode}
+                onToggleNoteMode={() => setNoteMode((x) => !x)}
+                highlightedNotes={noteMode ? selectedCellNotes : []}
+              />
+            )}
+          </Motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
