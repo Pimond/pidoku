@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from "react";
 import Board from "./components/Board";
 import NumberPad from "./components/NumberPad";
-import { generatePuzzle } from "./utils/generatePuzzle";
+import { generatePuzzle, gridToString, stringToGrid } from "./utils/generatePuzzle";
 import Confetti from "react-confetti";
 import { useAuth } from "./AuthProvider";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, getDoc, updateDoc } from "firebase/firestore";
 import { firestore } from "./firebase";
+import { useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion as Motion } from "motion/react";
 
-function createPuzzle(diff) {
+async function createPuzzle(diff) {
   const next = generatePuzzle(diff);
   const puzzle = next.puzzle.map((row) =>
     row.map((cell) => ({
@@ -17,7 +18,13 @@ function createPuzzle(diff) {
       fixed: cell !== "",
     }))
   );
-  return { puzzle, solution: next.solution };
+  const docRef = await addDoc(collection(firestore, "puzzles"), {
+    puzzle: gridToString(next.puzzle),
+    solution: gridToString(next.solution),
+    difficulty: diff,
+    createdAt: serverTimestamp(),
+  });
+  return { puzzle, solution: next.solution, seed: docRef.id };
 }
 
 function formatTime(secs) {
@@ -28,6 +35,7 @@ function formatTime(secs) {
 
 export default function Game() {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [difficulty, setDifficulty] = useState("easy");
   const [stage, setStage] = useState("select");
   const [puzzleData, setPuzzleData] = useState(null);
@@ -39,6 +47,62 @@ export default function Game() {
   const [secondsElapsed, setSecondsElapsed] = useState(0);
   const [timerActive, setTimerActive] = useState(true);
   const [recorded, setRecorded] = useState(false);
+  const [seedInputMode, setSeedInputMode] = useState(false);
+  const [seedText, setSeedText] = useState("");
+  const [seed, setSeed] = useState("");
+  const [gameId, setGameId] = useState(null);
+
+  useEffect(() => {
+    const seedParam = searchParams.get("seed");
+    const gameParam = searchParams.get("game");
+    if (seedParam) {
+      loadSeed(seedParam, gameParam);
+      setSearchParams({});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function loadSeed(seedValue, gameValue) {
+    const puzzleSnap = await getDoc(doc(firestore, "puzzles", seedValue));
+    if (!puzzleSnap.exists()) return;
+    const data = puzzleSnap.data();
+    const puzzle = stringToGrid(data.puzzle).map((row) =>
+      row.map((cell) => ({ value: cell, notes: [], fixed: cell !== "" }))
+    );
+    const solution = stringToGrid(data.solution);
+    setDifficulty(data.difficulty);
+    setPuzzleData({ puzzle, solution, seed: seedValue });
+    setSeed(seedValue);
+    let boardData = puzzle.map((row) => row.map((c) => ({ ...c })));
+    let secs = 0;
+    if (gameValue) {
+      const gameSnap = await getDoc(doc(firestore, "users", user.uid, "games", gameValue));
+      if (gameSnap.exists()) {
+        const g = gameSnap.data();
+        boardData = g.board;
+        secs = g.secondsElapsed || 0;
+        setGameId(gameValue);
+      }
+    } else if (user) {
+      const gameRef = await addDoc(collection(firestore, "users", user.uid, "games"), {
+        puzzleSeed: seedValue,
+        difficulty: data.difficulty,
+        board: boardData,
+        secondsElapsed: 0,
+        completed: false,
+        createdAt: serverTimestamp(),
+      });
+      setGameId(gameRef.id);
+    }
+    setBoard(boardData);
+    setSecondsElapsed(secs);
+    setSelected([null, null]);
+    setCompleted(false);
+    setCorrect(false);
+    setTimerActive(true);
+    setRecorded(false);
+    setStage("play");
+  }
 
   function handleCellSelect(row, col) {
     setSelected([row, col]);
@@ -93,9 +157,16 @@ export default function Game() {
     );
   }
 
-  function handleNewPuzzle() {
-    const next = createPuzzle(difficulty);
+  async function startPuzzle() {
+    let next;
+    if (seedInputMode && seedText) {
+      await loadSeed(seedText);
+      return;
+    } else {
+      next = await createPuzzle(difficulty);
+    }
     setPuzzleData(next);
+    setSeed(next.seed);
     setBoard(next.puzzle.map((row) => row.map((cell) => ({ ...cell }))));
     setSelected([null, null]);
     setCompleted(false);
@@ -103,7 +174,28 @@ export default function Game() {
     setSecondsElapsed(0);
     setTimerActive(true);
     setRecorded(false);
+    setSeedInputMode(false);
+    setSeedText("");
+    if (user) {
+      const gameRef = await addDoc(collection(firestore, "users", user.uid, "games"), {
+        puzzleSeed: next.seed,
+        difficulty,
+        board: next.puzzle.map((row) => row.map((c) => ({ ...c }))),
+        secondsElapsed: 0,
+        completed: false,
+        createdAt: serverTimestamp(),
+      });
+      setGameId(gameRef.id);
+    }
     setStage("play");
+  }
+
+  function resetToSelect() {
+    setStage("select");
+    setBoard(null);
+    setPuzzleData(null);
+    setSeed("");
+    setGameId(null);
   }
 
   function checkCompletion() {
@@ -147,18 +239,27 @@ export default function Game() {
   }, [timerActive]);
 
   useEffect(() => {
+    if (user && gameId) {
+      updateDoc(doc(firestore, "users", user.uid, "games", gameId), {
+        board,
+        secondsElapsed,
+      });
+    }
+  }, [board, secondsElapsed, user, gameId]);
+
+  useEffect(() => {
     if (completed && correct) {
       setTimerActive(false);
-      if (user && !recorded) {
-        addDoc(collection(firestore, "users", user.uid, "games"), {
-          difficulty,
+      if (user && gameId && !recorded) {
+        updateDoc(doc(firestore, "users", user.uid, "games", gameId), {
+          completed: true,
           time: secondsElapsed,
           completedAt: serverTimestamp(),
         });
         setRecorded(true);
       }
     }
-  }, [completed, correct, user, secondsElapsed, recorded]);
+  }, [completed, correct, user, secondsElapsed, recorded, gameId]);
 
   const selectedCellNotes =
     board && selected[0] !== null && selected[1] !== null
@@ -196,8 +297,31 @@ export default function Game() {
               ))}
             </div>
             <Motion.button
+              whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: 1.05 }}
+              onClick={() => setSeedInputMode((s) => !s)}
+              className="mb-2 px-4 py-2 bg-purple-200 rounded"
+            >
+              {seedInputMode ? "Cancel Seed" : "Seed"}
+            </Motion.button>
+            <AnimatePresence>
+              {seedInputMode && (
+                <Motion.input
+                  key="seedinput"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  value={seedText}
+                  onChange={(e) => setSeedText(e.target.value)}
+                  placeholder="Enter seed"
+                  className="px-2 py-1 border rounded mb-2"
+                />
+              )}
+            </AnimatePresence>
+            <Motion.button
               whileTap={{ scale: 0.95 }}
-              onClick={handleNewPuzzle}
+              onClick={startPuzzle}
               className="px-6 py-2 bg-green-400 rounded text-white font-bold"
             >
               Start
@@ -213,7 +337,7 @@ export default function Game() {
             className="flex flex-col items-center w-full"
           >
             <button
-              onClick={handleNewPuzzle}
+              onClick={resetToSelect}
               className="mb-4 px-4 py-2 bg-blue-200 hover:bg-blue-300 rounded font-bold"
             >
               New Puzzle
@@ -251,6 +375,17 @@ export default function Game() {
                 onToggleNoteMode={() => setNoteMode((x) => !x)}
                 highlightedNotes={noteMode ? selectedCellNotes : []}
               />
+            )}
+            {seed && (
+              <div className="mt-4 flex items-center gap-2 text-sm">
+                <span className="font-mono">Seed: {seed}</span>
+                <button
+                  className="p-1 bg-gray-200 rounded"
+                  onClick={() => navigator.clipboard.writeText(seed)}
+                >
+                  📋
+                </button>
+              </div>
             )}
           </Motion.div>
         )}

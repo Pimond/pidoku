@@ -14,7 +14,7 @@ export default function Profile() {
       if (!user) return;
       const q = query(
         collection(firestore, 'users', user.uid, 'games'),
-        orderBy('completedAt', 'desc')
+        orderBy('createdAt', 'desc')
       );
       const snap = await getDocs(q);
       setGames(snap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -46,12 +46,24 @@ export default function Profile() {
               transition={{ duration: 0.2 }}
               className="p-2 bg-gray-100 rounded shadow"
             >
-              <div className="text-sm">
-                <span className="font-semibold mr-2">{game.difficulty}</span>
-                {game.time}s
+              <div className="flex justify-between items-center">
+                <div>
+                  <span className="font-semibold mr-2">{game.difficulty}</span>
+                  {game.completed ? (
+                    <span>{Math.floor(game.time / 60)}m {game.time % 60}s</span>
+                  ) : (
+                    <span className="italic">(In-Progress)</span>
+                  )}
+                </div>
+                <Link
+                  className="text-blue-600 underline text-sm"
+                  to={`/?seed=${game.puzzleSeed}&game=${game.id}`}
+                >
+                  {game.completed ? 'View' : 'Resume'}
+                </Link>
               </div>
               {game.completedAt?.toDate && (
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-gray-500 mt-1">
                   {game.completedAt.toDate().toLocaleString()}
                 </div>
               )}
