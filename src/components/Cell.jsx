@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "motion/react"
+import { AnimatePresence, motion as Motion } from "motion/react"
 function getBgColor({ isConflict, isSelected, isSameRow, isSameCol, fixed }) {
   if (isConflict) return "#fee2e2";        // bg-red-100
   if (isSelected) return "#f0f9ff";        // bg-blue-50
@@ -14,7 +14,6 @@ export default function Cell({
   isSameValue,
   isSameRow,
   isSameCol,
-  isSameBox,
   onSelect,
   isConflict
 }) {
@@ -59,7 +58,7 @@ export default function Cell({
     border-gray-400`;
 
   return (
-    <motion.div
+    <Motion.div
       animate={{ backgroundColor: getBgColor({ isConflict, isSelected, isSameRow, isSameCol, fixed: cell.fixed }) }}
       transition={{ duration: 0.2 }}
       className={`${base} ${border} ${highlight}`}
@@ -71,7 +70,7 @@ export default function Cell({
       {value ? (
         <AnimatePresence mode="wait">
 
-          <motion.div
+          <Motion.div
             key={cell.value}
             initial={{ scale: 0, transition: { delay: 0.9, duration: 1 } }} animate={{ scale: 1, x: isConflict && cell.value ? [0, -4, 4, -4, 4, 0] : 0 }}
             exit={{ scale: 0, opacity: 0, transition: { duration: 0.15 } }}
@@ -85,33 +84,33 @@ export default function Cell({
             whileHover={{ scale: 1.2, transition: { delay: 0, duration: 0.1 } }}
             whileTap={{ scale: 0.95, transition: { delay: 0, duration: 0.1 } }} >
 
-            <motion.span className={`text-2xl ${text} ${font}`}>{value}</motion.span>
+            <Motion.span className={`text-2xl ${text} ${font}`}>{value}</Motion.span>
 
-          </motion.div>
+          </Motion.div>
         </AnimatePresence >
 
       ) : notes && notes.length > 0 ? (
-        <motion.div
+        <Motion.div
           className="absolute inset-0 grid grid-cols-3 grid-rows-3 text-xs p-0.6 text-gray-600">
             {Array.from({ length: 9 }).map((_, i) =>
               notes.includes((i + 1).toString()) ? (
-                <motion.span
+                <Motion.span
 
 
                   key={i} className="flex items-center justify-center">
                   {i + 1}
-                </motion.span>
+                </Motion.span>
               ) : (
-                <motion.span
+                <Motion.span
 
-                  key={i}></motion.span>
+                  key={i}></Motion.span>
               )
 
             )}
-        </motion.div>
+        </Motion.div>
 
       ) : null}
 
-    </motion.div>
+    </Motion.div>
   );
 }
