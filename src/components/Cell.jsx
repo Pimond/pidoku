@@ -79,13 +79,15 @@ export default function Cell({
           </Motion.div>
         </AnimatePresence>
       ) : notes && notes.length > 0 ? (
-        <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 text-xs p-0.5 text-gray-600 select-none">
+        <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 text-xs p-0.5 text-gray-600 select-none pointer-events-none">
           {Array.from({ length: 9 }).map((_, i) => {
             const num = (i + 1).toString();
+            const show = notes.includes(num);
             return (
               <Motion.span
                 key={num}
-                animate={{ opacity: notes.includes(num) ? 1 : 0 }}
+                animate={{ opacity: show ? 1 : 0 }}
+                style={{ visibility: show ? "visible" : "hidden" }}
                 transition={{ duration: 0.15 }}
                 className="flex items-center justify-center"
               >

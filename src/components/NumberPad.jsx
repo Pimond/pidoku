@@ -7,6 +7,7 @@ export default function NumberPad({ onInput, onErase, noteMode, onToggleNoteMode
           const isHighlighted = noteMode && highlightedNotes.includes(n.toString());
           return (
             <Motion.button
+              animate={{ scale: 1 }}
               whileTap={{ scale: 0.8, transition: { duration: 0.01 } }}
               key={n}
               onClick={() => onInput(String(n))}
@@ -24,8 +25,8 @@ export default function NumberPad({ onInput, onErase, noteMode, onToggleNoteMode
       </div>
       <div className="flex gap-2">
         <Motion.button
+          animate={{ scale: 1 }}
           whileTap={{ scale: 0.8, transition: { duration: 0.01 } }}
-
           onClick={onToggleNoteMode}
           className={`w-20 h-10 rounded text-lg font-bold shadow ${noteMode
             ? "bg-yellow-400 hover:bg-yellow-500"
@@ -35,8 +36,8 @@ export default function NumberPad({ onInput, onErase, noteMode, onToggleNoteMode
           Note
         </Motion.button>
         <Motion.button
+          animate={{ scale: 1 }}
           whileTap={{ scale: 0.8, transition: { duration: 0.01 } }}
-
           onClick={onErase}
           className="w-20 h-10 bg-red-200 rounded text-lg font-bold shadow hover:bg-red-300 transition"
         >
