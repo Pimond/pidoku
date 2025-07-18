@@ -44,7 +44,9 @@ export default function Profile() {
               initial={{ opacity: 0, translateY: -5 }}
               animate={{ opacity: 1, translateY: 0 }}
               transition={{ duration: 0.2 }}
-              className="p-2 bg-gray-100 rounded shadow"
+              className={`p-2 rounded shadow ${
+                game.completed ? 'bg-green-100' : 'bg-blue-100'
+              }`}
             >
               <div className="flex justify-between items-center">
                 <div>
