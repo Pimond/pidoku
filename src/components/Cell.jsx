@@ -61,11 +61,19 @@ export default function Cell({
     <Motion.div
       animate={{ backgroundColor: getBgColor({ isConflict, isSelected, isSameRow, isSameCol, fixed: cell.fixed }) }}
       transition={{ duration: 0.2 }}
-      className={`${base} ${border} ${highlight}`}
+      className={`${base} ${border} ${highlight} focus:outline-none`}
       onClick={() => onSelect(row, col)}
       tabIndex={0}
       role="button"
       aria-label={`Cell ${row + 1},${col + 1}`}>
+      <AnimatePresence>
+        {isSelected && (
+          <Motion.div
+            layoutId="cell-focus"
+            className="absolute inset-0 border-2 border-black pointer-events-none rounded"
+          />
+        )}
+      </AnimatePresence>
       {value ? (
         <AnimatePresence mode="wait">
           <Motion.div
