@@ -43,6 +43,8 @@ export default function AuthButtons() {
         msg = 'Email already in use.';
       } else if (err.code === 'auth/weak-password') {
         msg = 'Weak password. Must be at least 6 characters.';
+      } else if (err.code =='auth/invalid-login-credentials') {
+        msg = 'Wrong email or password!'
       }
       setError(msg);
     }

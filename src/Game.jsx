@@ -311,11 +311,10 @@ export default function Game() {
                   whileHover={{ scale: 1.05 }}
                   disabled={seedInputMode}
                   onClick={() => setDifficulty(diff)}
-                  className={`w-24 px-4 py-2 rounded shadow transition ${
-                    difficulty === diff
+                  className={`w-24 px-4 py-2 rounded shadow transition ${difficulty === diff
                       ? "bg-blue-400 text-white"
                       : "bg-gray-200 hover:bg-gray-300"
-                  } ${seedInputMode ? "opacity-50 cursor-not-allowed" : ""}`}
+                    } ${seedInputMode ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   {diff.charAt(0).toUpperCase() + diff.slice(1)}
                 </Motion.button>
@@ -387,6 +386,15 @@ export default function Game() {
                     width={window.innerWidth}
                     height={window.innerHeight}
                     numberOfPieces={400}
+                    style={{
+                      position: 'fixed',
+                      top: 0,
+                      left: 0,
+                      width: '100vw',
+                      height: '100vh',
+                      pointerEvents: 'none',
+                      zIndex: 9999,
+                    }}
                   />
                   🎉 You solved it!
                 </Motion.div>
