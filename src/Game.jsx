@@ -33,6 +33,22 @@ function formatTime(secs) {
   return `${m}:${s}`;
 }
 
+// Firestore does not support nested arrays nicely, so store the board as a
+// single array of 81 cells and convert back when loading.
+function boardToArray(board) {
+  return board.flat().map((cell) => ({
+    value: cell.value,
+    notes: cell.notes,
+    fixed: cell.fixed,
+  }));
+}
+
+function arrayToBoard(arr) {
+  return Array.from({ length: 9 }, (_, i) =>
+    arr.slice(i * 9, (i + 1) * 9)
+  );
+}
+
 export default function Game() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -79,7 +95,7 @@ export default function Game() {
       const gameSnap = await getDoc(doc(firestore, "users", user.uid, "games", gameValue));
       if (gameSnap.exists()) {
         const g = gameSnap.data();
-        boardData = g.board;
+        boardData = arrayToBoard(g.board);
         secs = g.secondsElapsed || 0;
         setGameId(gameValue);
       }
@@ -87,7 +103,7 @@ export default function Game() {
       const gameRef = await addDoc(collection(firestore, "users", user.uid, "games"), {
         puzzleSeed: seedValue,
         difficulty: data.difficulty,
-        board: boardData,
+        board: boardToArray(boardData),
         secondsElapsed: 0,
         completed: false,
         createdAt: serverTimestamp(),
@@ -180,7 +196,7 @@ export default function Game() {
       const gameRef = await addDoc(collection(firestore, "users", user.uid, "games"), {
         puzzleSeed: next.seed,
         difficulty,
-        board: next.puzzle.map((row) => row.map((c) => ({ ...c }))),
+        board: boardToArray(next.puzzle.map((row) => row.map((c) => ({ ...c })))),
         secondsElapsed: 0,
         completed: false,
         createdAt: serverTimestamp(),
@@ -224,9 +240,9 @@ export default function Game() {
   }, [timerActive]);
 
   useEffect(() => {
-    if (user && gameId) {
+    if (user && gameId && board) {
       updateDoc(doc(firestore, "users", user.uid, "games", gameId), {
-        board,
+        board: boardToArray(board),
         secondsElapsed,
       });
     }
