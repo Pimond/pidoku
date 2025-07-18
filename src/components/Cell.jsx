@@ -70,7 +70,11 @@ export default function Cell({
         {isSelected && (
           <Motion.div
             layoutId="cell-focus"
-            className="absolute inset-0 border-2 border-black pointer-events-none rounded"
+            initial={{ borderWidth: 1 }}
+            animate={{ borderWidth: 2 }}
+            transition={{ borderWidth: { type: "spring", bounce: 0.3, duration: 0.2 } }}
+            className="absolute inset-0 border-black pointer-events-none rounded z-10"
+            style={{ borderStyle: "solid" }}
           />
         )}
       </AnimatePresence>
