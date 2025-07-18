@@ -14,7 +14,10 @@ export default function App() {
         <Link to="/" className="text-3xl font-bold">Pidoku</Link>
         <div className="ml-auto flex items-center">
           {user && (
-            <Link className="mr-4 underline" to="/profile">
+            <Link
+              className="mr-4 px-3 py-1 rounded bg-blue-200 hover:bg-blue-300 transition"
+              to="/profile"
+            >
               Profile
             </Link>
           )}
