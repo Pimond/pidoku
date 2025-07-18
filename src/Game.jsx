@@ -198,32 +198,17 @@ export default function Game() {
     setGameId(null);
   }
 
-  function checkCompletion() {
-    if (!board) return false;
-    for (let i = 0; i < 9; i++) {
-      for (let j = 0; j < 9; j++) {
-        if (!board[i][j].value) return false;
-      }
-    }
-    return true;
-  }
-
-  function checkCorrect() {
-    if (!board || !puzzleData) return false;
-    const { solution } = puzzleData;
-    for (let i = 0; i < 9; i++) {
-      for (let j = 0; j < 9; j++) {
-        if (board[i][j].value !== (solution[i][j] || "")) return false;
-      }
-    }
-    return true;
-  }
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (checkCompletion()) {
+    const complete =
+      board && board.every((row) => row.every((cell) => cell.value));
+    if (complete) {
+      const correct =
+        puzzleData &&
+        board.every((row, i) =>
+          row.every((cell, j) => cell.value === (puzzleData.solution[i][j] || ""))
+        );
       setCompleted(true);
-      setCorrect(checkCorrect());
+      setCorrect(!!correct);
     } else {
       setCompleted(false);
       setCorrect(false);
