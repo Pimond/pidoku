@@ -73,7 +73,14 @@ export default function Cell({
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1, x: isConflict ? [0, -4, 4, -4, 4, 0] : 0 }}
             exit={{ scale: 0, opacity: 0 }}
-            transition={{ delay: appearDelay, type: "spring", stiffness: 300, damping: 20, duration: 0.2 }}
+            transition={{
+              delay: appearDelay,
+              type: "spring",
+              stiffness: 300,
+              damping: 20,
+              duration: 0.2,
+              x: { type: "tween", duration: 0.3, ease: "easeInOut" },
+            }}
           >
             <span className={`text-2xl ${text} ${font}`}>{value}</span>
           </Motion.div>
