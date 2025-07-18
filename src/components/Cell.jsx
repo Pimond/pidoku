@@ -51,10 +51,10 @@ export default function Cell({
     "w-12 h-12 text-center text-lg cursor-pointer relative flex items-center justify-center";
   const border =
     `border 
-    ${col % 3 === 0 ? "border-l-2" : "border-l"} 
-    ${row % 3 === 0 ? "border-t-2" : "border-t"} 
-    ${col === 8 ? "border-r-2" : ""} 
-    ${row === 8 ? "border-b-2" : ""} 
+    ${col % 3 === 0 ? "border-l-4 border-l-gray-400" : "border-l"} 
+    ${row % 3 === 0 ? "border-t-4 border-t-gray-400" : "border-t"} 
+    ${col === 8 ? "border-r-4 border-r-gray-400" : ""} 
+    ${row === 8 ? "border-b-4 border-b-gray-400" : ""} 
     border-gray-400`;
 
   return (
@@ -70,10 +70,10 @@ export default function Cell({
         {isSelected && (
           <Motion.div
             layoutId="cell-focus"
-            initial={{ borderWidth: 1 }}
-            animate={{ borderWidth: 2 }}
+            initial={{ borderWidth: 1, opacity: 0.1 }}
+            animate={{ borderWidth: 2, opacity: 0.2 }}
             transition={{ borderWidth: { type: "spring", bounce: 0.3, duration: 0.2 } }}
-            className="absolute inset-0 border-black pointer-events-none rounded z-10"
+            className="absolute inset-0 border-black pointer-events-none z-10"
             style={{ borderStyle: "solid" }}
           />
         )}
