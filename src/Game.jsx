@@ -347,7 +347,7 @@ export default function Game() {
             className="flex flex-col items-center mt-10"
           >
             <h2 className="text-2xl font-bold mb-4">Choose Difficulty</h2>
-            <div className="flex flex-wrap items-center gap-4 mb-4">
+            <div className="flex flex-wrap items-center justify-center gap-4 mb-4">
               {["easy", "medium", "hard"].map((diff) => (
                 <Motion.button
                   key={diff}
@@ -364,36 +364,36 @@ export default function Game() {
                   {diff.charAt(0).toUpperCase() + diff.slice(1)}
                 </Motion.button>
               ))}
-              <div className="flex items-center ml-2 gap-2">
-                <span className="text-sm">Seed</span>
+            </div>
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <span className="text-sm">Seed</span>
+              <Motion.div
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setSeedInputMode((s) => !s)}
+                className={`w-10 h-6 rounded-full bg-gray-300 flex items-center p-1 cursor-pointer ${seedInputMode ? "bg-purple-400" : ""}`}
+              >
                 <Motion.div
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setSeedInputMode((s) => !s)}
-                  className={`w-10 h-6 rounded-full bg-gray-300 flex items-center p-1 cursor-pointer ${seedInputMode ? "bg-purple-400" : ""}`}
-                >
-                  <Motion.div
-                    layout
-                    transition={{ type: "spring", stiffness: 700, damping: 30 }}
-                    className="w-4 h-4 bg-white rounded-full shadow"
-                    style={{ x: seedInputMode ? 16 : 0 }}
+                  layout
+                  transition={{ type: "spring", stiffness: 700, damping: 30 }}
+                  className="w-4 h-4 bg-white rounded-full shadow"
+                  style={{ x: seedInputMode ? 16 : 0 }}
+                />
+              </Motion.div>
+              <AnimatePresence>
+                {seedInputMode && (
+                  <Motion.input
+                    key="seedinput"
+                    initial={{ width: 0, opacity: 0 }}
+                    animate={{ width: 150, opacity: 1 }}
+                    exit={{ width: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    value={seedText}
+                    onChange={(e) => setSeedText(e.target.value)}
+                    placeholder="Enter seed"
+                    className="px-2 py-1 border rounded"
                   />
-                </Motion.div>
-                <AnimatePresence>
-                  {seedInputMode && (
-                    <Motion.input
-                      key="seedinput"
-                      initial={{ width: 0, opacity: 0 }}
-                      animate={{ width: 150, opacity: 1 }}
-                      exit={{ width: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      value={seedText}
-                      onChange={(e) => setSeedText(e.target.value)}
-                      placeholder="Enter seed"
-                      className="px-2 py-1 border rounded"
-                    />
-                  )}
-                </AnimatePresence>
-              </div>
+                )}
+              </AnimatePresence>
             </div>
             <Motion.button
               whileTap={{ scale: 0.95 }}
