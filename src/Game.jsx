@@ -11,11 +11,12 @@ import { AnimatePresence, motion as Motion } from "motion/react";
 
 async function createPuzzle(diff) {
   const next = generatePuzzle(diff);
-  const puzzle = next.puzzle.map((row) =>
-    row.map((cell) => ({
+  const puzzle = next.puzzle.map((row, r) =>
+    row.map((cell, c) => ({
       value: cell,
       notes: [],
       fixed: cell !== "",
+      appearDelay: cell !== "" ? (r * 9 + c) * 0.03 : 0,
     }))
   );
   const docRef = await addDoc(collection(firestore, "puzzles"), {
@@ -53,7 +54,10 @@ export default function Game() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [difficulty, setDifficulty] = useState("easy");
-  const [stage, setStage] = useState("select");
+  const initialStage = new URLSearchParams(window.location.search).get("seed")
+    ? "loading"
+    : "select";
+  const [stage, setStage] = useState(initialStage);
   const [puzzleData, setPuzzleData] = useState(null);
   const [board, setBoard] = useState(null);
   const [selected, setSelected] = useState([null, null]);
@@ -67,6 +71,7 @@ export default function Game() {
   const [seedText, setSeedText] = useState("");
   const [seed, setSeed] = useState("");
   const [gameId, setGameId] = useState(null);
+  const [seedCopied, setSeedCopied] = useState(false);
 
   useEffect(() => {
     const seedParam = searchParams.get("seed");
@@ -74,6 +79,8 @@ export default function Game() {
     if (seedParam) {
       loadSeed(seedParam, gameParam);
       setSearchParams({});
+    } else if (stage === "loading") {
+      setStage("select");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -82,8 +89,13 @@ export default function Game() {
     const puzzleSnap = await getDoc(doc(firestore, "puzzles", seedValue));
     if (!puzzleSnap.exists()) return;
     const data = puzzleSnap.data();
-    const puzzle = stringToGrid(data.puzzle).map((row) =>
-      row.map((cell) => ({ value: cell, notes: [], fixed: cell !== "" }))
+    const puzzle = stringToGrid(data.puzzle).map((row, r) =>
+      row.map((cell, c) => ({
+        value: cell,
+        notes: [],
+        fixed: cell !== "",
+        appearDelay: cell !== "" ? (r * 9 + c) * 0.03 : 0,
+      }))
     );
     const solution = stringToGrid(data.solution);
     setDifficulty(data.difficulty);
@@ -171,6 +183,11 @@ export default function Game() {
         )
       )
     );
+  }
+
+  function handleCopySeed() {
+    navigator.clipboard.writeText(seed);
+    setSeedCopied(true);
   }
 
   async function startPuzzle() {
@@ -262,10 +279,38 @@ export default function Game() {
     }
   }, [completed, correct, user, secondsElapsed, recorded, gameId]);
 
+  useEffect(() => {
+    if (!seedCopied) return;
+    const t = setTimeout(() => setSeedCopied(false), 1500);
+    return () => clearTimeout(t);
+  }, [seedCopied]);
+
+  useEffect(() => {
+    function handleKey(e) {
+      if (stage !== "play") return;
+      if (/^[1-9]$/.test(e.key)) {
+        handleNumberInput(e.key);
+      } else if (e.key === "Backspace" || e.key === "Delete") {
+        handleErase();
+      } else if (e.key === " ") {
+        e.preventDefault();
+        setNoteMode((n) => !n);
+      }
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [stage]);
+
   const selectedCellNotes =
     board && selected[0] !== null && selected[1] !== null
       ? board[selected[0]][selected[1]].notes
       : [];
+
+  if (stage === "loading") {
+    return (
+      <div className="p-4 text-xl">Loading...</div>
+    );
+  }
 
   return (
     <div className="p-4 flex flex-col items-center">
@@ -280,46 +325,54 @@ export default function Game() {
             className="flex flex-col items-center mt-10"
           >
             <h2 className="text-2xl font-bold mb-4">Choose Difficulty</h2>
-            <div className="flex gap-4 mb-4">
+            <div className="flex flex-wrap items-center gap-4 mb-4">
               {["easy", "medium", "hard"].map((diff) => (
                 <Motion.button
                   key={diff}
                   whileTap={{ scale: 0.9 }}
                   whileHover={{ scale: 1.05 }}
+                  disabled={seedInputMode}
                   onClick={() => setDifficulty(diff)}
-                  className={`px-4 py-2 rounded shadow ${
+                  className={`w-24 px-4 py-2 rounded shadow transition ${
                     difficulty === diff
                       ? "bg-blue-400 text-white"
-                      : "bg-gray-200"
-                  }`}
+                      : "bg-gray-200 hover:bg-gray-300"
+                  } ${seedInputMode ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   {diff.charAt(0).toUpperCase() + diff.slice(1)}
                 </Motion.button>
               ))}
+              <div className="flex items-center ml-2 gap-2">
+                <span className="text-sm">Seed</span>
+                <Motion.div
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setSeedInputMode((s) => !s)}
+                  className={`w-10 h-6 rounded-full bg-gray-300 flex items-center p-1 cursor-pointer ${seedInputMode ? "bg-purple-400" : ""}`}
+                >
+                  <Motion.div
+                    layout
+                    transition={{ type: "spring", stiffness: 700, damping: 30 }}
+                    className="w-4 h-4 bg-white rounded-full shadow"
+                    style={{ x: seedInputMode ? 16 : 0 }}
+                  />
+                </Motion.div>
+                <AnimatePresence>
+                  {seedInputMode && (
+                    <Motion.input
+                      key="seedinput"
+                      initial={{ width: 0, opacity: 0 }}
+                      animate={{ width: 150, opacity: 1 }}
+                      exit={{ width: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      value={seedText}
+                      onChange={(e) => setSeedText(e.target.value)}
+                      placeholder="Enter seed"
+                      className="px-2 py-1 border rounded"
+                    />
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
-            <Motion.button
-              whileTap={{ scale: 0.9 }}
-              whileHover={{ scale: 1.05 }}
-              onClick={() => setSeedInputMode((s) => !s)}
-              className="mb-2 px-4 py-2 bg-purple-200 rounded"
-            >
-              {seedInputMode ? "Cancel Seed" : "Seed"}
-            </Motion.button>
-            <AnimatePresence>
-              {seedInputMode && (
-                <Motion.input
-                  key="seedinput"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.2 }}
-                  value={seedText}
-                  onChange={(e) => setSeedText(e.target.value)}
-                  placeholder="Enter seed"
-                  className="px-2 py-1 border rounded mb-2"
-                />
-              )}
-            </AnimatePresence>
             <Motion.button
               whileTap={{ scale: 0.95 }}
               onClick={startPuzzle}
@@ -335,7 +388,7 @@ export default function Game() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="flex flex-col items-center w-full"
+            className="relative flex flex-col items-center w-full"
           >
             <button
               onClick={resetToSelect}
@@ -343,24 +396,38 @@ export default function Game() {
             >
               New Puzzle
             </button>
-            {completed && correct && (
-              <>
-                <Confetti
-                  width={window.innerWidth}
-                  height={window.innerHeight}
-                  numberOfPieces={400}
-                />
-                <div className="mb-4 px-6 py-3 bg-green-200 text-green-800 rounded shadow text-xl font-bold">
+            <AnimatePresence>
+              {completed && correct && (
+                <Motion.div
+                  key="correct"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="absolute -top-12 px-6 py-3 bg-green-200 text-green-800 rounded shadow text-xl font-bold"
+                >
+                  <Confetti
+                    width={window.innerWidth}
+                    height={window.innerHeight}
+                    numberOfPieces={400}
+                  />
                   🎉 You solved it!
-                </div>
-              </>
-            )}
-            {completed && !correct && (
-              <div className="mb-4 px-6 py-3 bg-red-200 text-red-800 rounded shadow text-xl font-bold">
-                Puzzle is filled, but something's wrong!
-              </div>
-            )}
-            <div className="mb-4 text-xl font-mono text-gray-700">Time: {formatTime(secondsElapsed)}</div>
+                </Motion.div>
+              )}
+              {completed && !correct && (
+                <Motion.div
+                  key="wrong"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="absolute -top-12 px-6 py-3 bg-red-200 text-red-800 rounded shadow text-xl font-bold"
+                >
+                  Puzzle is filled, but something's wrong!
+                </Motion.div>
+              )}
+            </AnimatePresence>
+            <div className="mb-4 text-2xl font-mono bg-gray-800 text-white px-4 py-1 rounded shadow">
+              {formatTime(secondsElapsed)}
+            </div>
             {board && (
               <Board
                 board={board}
@@ -378,14 +445,29 @@ export default function Game() {
               />
             )}
             {seed && (
-              <div className="mt-4 flex items-center gap-2 text-sm">
+              <div className="mt-4 flex items-center gap-2 text-sm relative">
                 <span className="font-mono">Seed: {seed}</span>
-                <button
+                <Motion.button
+                  whileTap={{ scale: 0.9 }}
                   className="p-1 bg-gray-200 rounded"
-                  onClick={() => navigator.clipboard.writeText(seed)}
+                  onClick={handleCopySeed}
                 >
                   📋
-                </button>
+                </Motion.button>
+                <AnimatePresence>
+                  {seedCopied && (
+                    <Motion.span
+                      key="copied"
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -5 }}
+                      transition={{ duration: 0.3 }}
+                      className="absolute -top-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded"
+                    >
+                      Seed copied!
+                    </Motion.span>
+                  )}
+                </AnimatePresence>
               </div>
             )}
           </Motion.div>

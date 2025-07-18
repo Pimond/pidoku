@@ -1,4 +1,4 @@
-import { AnimatePresence, motion as Motion } from "motion/react"
+import { AnimatePresence, motion as Motion } from "motion/react";
 function getBgColor({ isConflict, isSelected, isSameRow, isSameCol, fixed }) {
   if (isConflict) return "#fee2e2";        // bg-red-100
   if (isSelected) return "#f0f9ff";        // bg-blue-50
@@ -15,9 +15,9 @@ export default function Cell({
   isSameRow,
   isSameCol,
   onSelect,
-  isConflict
+  isConflict,
 }) {
-  const { value, notes, fixed } = cell;
+  const { value, notes, fixed, appearDelay = 0 } = cell;
 
   let bg = "bg-white";
   let text = "text-blue-500";
@@ -66,50 +66,36 @@ export default function Cell({
       tabIndex={0}
       role="button"
       aria-label={`Cell ${row + 1},${col + 1}`}>
-
       {value ? (
         <AnimatePresence mode="wait">
-
           <Motion.div
             key={cell.value}
-            initial={{ scale: 0, transition: { delay: 0.9, duration: 1 } }} animate={{ scale: 1, x: isConflict && cell.value ? [0, -4, 4, -4, 4, 0] : 0 }}
-            exit={{ scale: 0, opacity: 0, transition: { duration: 0.15 } }}
-            transition={{
-              x: isConflict && cell.value
-                ? { duration: 0.3, times: [0, 0.2, 0.4, 0.6, 0.8, 1], ease: "easeInOut" }
-                : {},
-              scale: { type: "spring", duration: 0.18 },
-              opacity: { duration: 0.13 }
-            }}
-            whileHover={{ scale: 1.2, transition: { delay: 0, duration: 0.1 } }}
-            whileTap={{ scale: 0.95, transition: { delay: 0, duration: 0.1 } }} >
-
-            <Motion.span className={`text-2xl ${text} ${font}`}>{value}</Motion.span>
-
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1, x: isConflict ? [0, -4, 4, -4, 4, 0] : 0 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ delay: appearDelay, type: "spring", stiffness: 300, damping: 20, duration: 0.2 }}
+          >
+            <span className={`text-2xl ${text} ${font}`}>{value}</span>
           </Motion.div>
-        </AnimatePresence >
-
+        </AnimatePresence>
       ) : notes && notes.length > 0 ? (
-        <Motion.div
-          className="absolute inset-0 grid grid-cols-3 grid-rows-3 text-xs p-0.6 text-gray-600">
-            {Array.from({ length: 9 }).map((_, i) =>
-              notes.includes((i + 1).toString()) ? (
-                <Motion.span
-
-
-                  key={i} className="flex items-center justify-center">
-                  {i + 1}
-                </Motion.span>
-              ) : (
-                <Motion.span
-
-                  key={i}></Motion.span>
-              )
-
-            )}
-        </Motion.div>
-
+        <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 text-xs p-0.5 text-gray-600 select-none">
+          {Array.from({ length: 9 }).map((_, i) => {
+            const num = (i + 1).toString();
+            return (
+              <Motion.span
+                key={num}
+                animate={{ opacity: notes.includes(num) ? 1 : 0 }}
+                transition={{ duration: 0.15 }}
+                className="flex items-center justify-center"
+              >
+                {i + 1}
+              </Motion.span>
+            );
+          })}
+        </div>
       ) : null}
+
 
     </Motion.div>
   );

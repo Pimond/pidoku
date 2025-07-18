@@ -1,7 +1,7 @@
 import { motion as Motion } from "motion/react"
 export default function NumberPad({ onInput, onErase, noteMode, onToggleNoteMode, highlightedNotes = [] }) {
   return (
-    <div className="flex flex-col items-center mt-6">
+    <div className="flex flex-col items-center mt-6 select-none">
       <div className="grid grid-cols-3 gap-2 mb-2">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => {
           const isHighlighted = noteMode && highlightedNotes.includes(n.toString());
