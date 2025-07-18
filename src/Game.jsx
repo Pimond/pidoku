@@ -285,9 +285,19 @@ export default function Game() {
     return () => clearTimeout(t);
   }, [seedCopied]);
 
+  function moveSelection(dr, dc) {
+    setSelected(([r, c]) => {
+      const row = r === null ? 0 : Math.min(8, Math.max(0, r + dr));
+      const col = c === null ? 0 : Math.min(8, Math.max(0, c + dc));
+      return [row, col];
+    });
+  }
+
   useEffect(() => {
     function handleKey(e) {
       if (stage !== "play") return;
+      const targetTag = e.target.tagName;
+      if (targetTag === "INPUT" || targetTag === "TEXTAREA") return;
       if (/^[1-9]$/.test(e.key)) {
         handleNumberInput(e.key);
       } else if (e.key === "Backspace" || e.key === "Delete") {
@@ -295,11 +305,23 @@ export default function Game() {
       } else if (e.key === " ") {
         e.preventDefault();
         setNoteMode((n) => !n);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        moveSelection(-1, 0);
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        moveSelection(1, 0);
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        moveSelection(0, -1);
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        moveSelection(0, 1);
       }
     }
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [stage]);
+  }, [stage, selected]);
 
   const selectedCellNotes =
     board && selected[0] !== null && selected[1] !== null
