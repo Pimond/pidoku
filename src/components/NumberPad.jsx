@@ -1,4 +1,4 @@
-import { motion } from "motion/react"
+import { motion as Motion } from "motion/react"
 export default function NumberPad({ onInput, onErase, noteMode, onToggleNoteMode, highlightedNotes = [] }) {
   return (
     <div className="flex flex-col items-center mt-6">
@@ -6,7 +6,7 @@ export default function NumberPad({ onInput, onErase, noteMode, onToggleNoteMode
         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => {
           const isHighlighted = noteMode && highlightedNotes.includes(n.toString());
           return (
-            <motion.button
+            <Motion.button
               whileTap={{ scale: 0.8, transition: { duration: 0.01 } }}
               key={n}
               onClick={() => onInput(String(n))}
@@ -18,12 +18,12 @@ export default function NumberPad({ onInput, onErase, noteMode, onToggleNoteMode
               }
             >
               {n}
-            </motion.button>
+            </Motion.button>
           );
         })}
       </div>
       <div className="flex gap-2">
-        <motion.button
+        <Motion.button
           whileTap={{ scale: 0.8, transition: { duration: 0.01 } }}
 
           onClick={onToggleNoteMode}
@@ -33,15 +33,15 @@ export default function NumberPad({ onInput, onErase, noteMode, onToggleNoteMode
             }`}
         >
           Note
-        </motion.button>
-        <motion.button
+        </Motion.button>
+        <Motion.button
           whileTap={{ scale: 0.8, transition: { duration: 0.01 } }}
 
           onClick={onErase}
           className="w-20 h-10 bg-red-200 rounded text-lg font-bold shadow hover:bg-red-300 transition"
         >
           Erase
-        </motion.button>
+        </Motion.button>
       </div>
     </div>
   );

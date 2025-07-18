@@ -1,7 +1,7 @@
 import React from "react";
 import Cell from "./Cell";
 
-export default function Board({ board, selected, onCellChange, onCellSelect, isFixed }) {
+export default function Board({ board, selected, onCellSelect }) {
   const [selectedRow, selectedCol] = selected;
 
   // Value of currently selected cell, if any
@@ -31,11 +31,6 @@ export default function Board({ board, selected, onCellChange, onCellSelect, isF
     }
     return false;
   }
-  // Helper to get box index for a cell
-  const getBoxIndex = (row, col) => `${Math.floor(row / 3)}-${Math.floor(col / 3)}`;
-  const selectedBox = (selectedRow !== null && selectedCol !== null)
-    ? getBoxIndex(selectedRow, selectedCol)
-    : null;
 
   return (
     <div className="inline-block bg-gray-200 p-2 rounded-md shadow-lg">
@@ -51,7 +46,6 @@ export default function Board({ board, selected, onCellChange, onCellSelect, isF
               isSameValue={selectedValue && cell.value === selectedValue && cell.value !== "" && !(selected && selected[0] === rowIdx && selected[1] === colIdx)}
               isSameRow={selectedRow === rowIdx}
               isSameCol={selectedCol === colIdx}
-              isSameBox={selectedBox === getBoxIndex(rowIdx, colIdx)}
               isConflict={hasConflict(board, rowIdx, colIdx)}
               onSelect={onCellSelect}
             />
