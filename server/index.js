@@ -104,8 +104,8 @@ app.post('/api/puzzles', async (req, res) => {
 
 // ── Protected routes (require valid Firebase ID token) ── //
 
-// Authentication middleware
-app.use(async (req, res, next) => {
+// Authentication middleware applied after public routes
+const authMiddleware = async (req, res, next) => {
   const authHeader = req.headers.authorization || '';
   const token = authHeader.startsWith('Bearer ')
     ? authHeader.slice(7)
@@ -120,7 +120,10 @@ app.use(async (req, res, next) => {
   } catch {
     res.status(401).json({ error: 'Invalid token' });
   }
-});
+};
+
+// All routes below require a valid Firebase ID token
+app.use('/api', authMiddleware);
 
 // GET /api/profile
 app.get('/api/profile', async (req, res) => {
