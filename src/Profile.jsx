@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from './AuthProvider';
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
-import { firestore } from './firebase';
 import { motion as Motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 
@@ -12,12 +10,13 @@ export default function Profile() {
   useEffect(() => {
     async function fetchGames() {
       if (!user) return;
-      const q = query(
-        collection(firestore, 'users', user.uid, 'games'),
-        orderBy('createdAt', 'desc')
-      );
-      const snap = await getDocs(q);
-      setGames(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const res = await fetch('/api/profile', {
+        headers: { Authorization: `Bearer ${user.token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setGames(data.games);
+      }
     }
     fetchGames();
   }, [user]);
