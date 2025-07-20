@@ -4,8 +4,6 @@ import NumberPad from "./components/NumberPad";
 import { generatePuzzle, gridToString, stringToGrid } from "./utils/generatePuzzle";
 import Confetti from "react-confetti";
 import { useAuth } from "./AuthProvider";
-import { collection, addDoc, serverTimestamp, doc, getDoc, updateDoc } from "firebase/firestore";
-import { firestore } from "./firebase";
 import { useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion as Motion } from "motion/react";
 
@@ -19,13 +17,17 @@ async function createPuzzle(diff) {
       appearDelay: cell !== "" ? (r * 9 + c) * 0.03 : 0,
     }))
   );
-  const docRef = await addDoc(collection(firestore, "puzzles"), {
-    puzzle: gridToString(next.puzzle),
-    solution: gridToString(next.solution),
-    difficulty: diff,
-    createdAt: serverTimestamp(),
+  const res = await fetch('/api/puzzles', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      puzzle: gridToString(next.puzzle),
+      solution: gridToString(next.solution),
+      difficulty: diff,
+    }),
   });
-  return { puzzle, solution: next.solution, seed: docRef.id };
+  const data = await res.json();
+  return { puzzle, solution: next.solution, seed: data.id };
 }
 
 function formatTime(secs) {
@@ -86,9 +88,11 @@ export default function Game() {
   }, []);
 
   async function loadSeed(seedValue, gameValue) {
-    const puzzleSnap = await getDoc(doc(firestore, "puzzles", seedValue));
-    if (!puzzleSnap.exists()) return;
-    const data = puzzleSnap.data();
+    const resPuzzle = await fetch(`/api/puzzles/${seedValue}`, {
+      headers: { Authorization: user ? `Bearer ${user.token}` : '' },
+    });
+    if (!resPuzzle.ok) return;
+    const data = await resPuzzle.json();
     const puzzle = stringToGrid(data.puzzle).map((row, r) =>
       row.map((cell, c) => ({
         value: cell,
@@ -104,23 +108,30 @@ export default function Game() {
     let boardData = puzzle.map((row) => row.map((c) => ({ ...c })));
     let secs = 0;
     if (gameValue) {
-      const gameSnap = await getDoc(doc(firestore, "users", user.uid, "games", gameValue));
-      if (gameSnap.exists()) {
-        const g = gameSnap.data();
+      const resGame = await fetch(`/api/games/${gameValue}`, {
+        headers: { Authorization: `Bearer ${user.token}` },
+      });
+      if (resGame.ok) {
+        const g = await resGame.json();
         boardData = arrayToBoard(g.board);
         secs = g.secondsElapsed || 0;
         setGameId(gameValue);
       }
     } else if (user) {
-      const gameRef = await addDoc(collection(firestore, "users", user.uid, "games"), {
-        puzzleSeed: seedValue,
-        difficulty: data.difficulty,
-        board: boardToArray(boardData),
-        secondsElapsed: 0,
-        completed: false,
-        createdAt: serverTimestamp(),
+      const resGame = await fetch('/api/games', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user.token}`,
+        },
+        body: JSON.stringify({
+          puzzleSeed: seedValue,
+          difficulty: data.difficulty,
+          board: boardToArray(boardData),
+        }),
       });
-      setGameId(gameRef.id);
+      const gdata = await resGame.json();
+      setGameId(gdata.id);
     }
     setBoard(boardData);
     setSecondsElapsed(secs);
@@ -210,15 +221,20 @@ export default function Game() {
     setSeedInputMode(false);
     setSeedText("");
     if (user) {
-      const gameRef = await addDoc(collection(firestore, "users", user.uid, "games"), {
-        puzzleSeed: next.seed,
-        difficulty,
-        board: boardToArray(next.puzzle.map((row) => row.map((c) => ({ ...c })))),
-        secondsElapsed: 0,
-        completed: false,
-        createdAt: serverTimestamp(),
+      const resGame = await fetch('/api/games', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user.token}`,
+        },
+        body: JSON.stringify({
+          puzzleSeed: next.seed,
+          difficulty,
+          board: boardToArray(next.puzzle.map((row) => row.map((c) => ({ ...c })))),
+        }),
       });
-      setGameId(gameRef.id);
+      const g = await resGame.json();
+      setGameId(g.id);
     }
     setStage("play");
   }
@@ -258,9 +274,16 @@ export default function Game() {
 
   useEffect(() => {
     if (user && gameId && board) {
-      updateDoc(doc(firestore, "users", user.uid, "games", gameId), {
-        board: boardToArray(board),
-        secondsElapsed,
+      fetch(`/api/games/${gameId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user.token}`,
+        },
+        body: JSON.stringify({
+          board: boardToArray(board),
+          secondsElapsed,
+        }),
       });
     }
   }, [board, secondsElapsed, user, gameId]);
@@ -269,10 +292,17 @@ export default function Game() {
     if (completed && correct) {
       setTimerActive(false);
       if (user && gameId && !recorded) {
-        updateDoc(doc(firestore, "users", user.uid, "games", gameId), {
-          completed: true,
-          time: secondsElapsed,
-          completedAt: serverTimestamp(),
+        fetch(`/api/games/${gameId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${user.token}`,
+          },
+          body: JSON.stringify({
+            completed: true,
+            time: secondsElapsed,
+            completedAt: true,
+          }),
         });
         setRecorded(true);
       }

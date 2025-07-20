@@ -1,6 +1,4 @@
 import React, { useState } from 'react';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { auth } from '../firebase';
 import { useAuth } from '../AuthProvider';
 import { AnimatePresence, motion as Motion } from 'motion/react';
 
@@ -19,38 +17,40 @@ export default function AuthButtons() {
     setError('');
     setShowRegisterPrompt(false);
     try {
-      if (formType === 'login') {
-        await signInWithEmailAndPassword(auth, email, password);
-      } else {
+      let endpoint = '/api/login';
+      if (formType === 'register') {
         if (password !== confirmPassword) {
           setError('Passwords do not match');
           return;
         }
-        await createUserWithEmailAndPassword(auth, email, password);
+        endpoint = '/api/register';
       }
-      setEmail('');
-      setPassword('');
-      setConfirmPassword('');
-      setShowForm(false);
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Authentication failed');
+        return;
+      }
+      localStorage.setItem('token', data.idToken);
+      window.location.reload();
     } catch (err) {
-      let msg = err.message;
-      if (err.code === 'auth/user-not-found') {
-        msg = 'No account found with this email.';
-        setShowRegisterPrompt(true);
-      } else if (err.code === 'auth/wrong-password') {
-        msg = 'Incorrect password.';
-      } else if (err.code === 'auth/email-already-in-use') {
-        msg = 'Email already in use.';
-      } else if (err.code === 'auth/weak-password') {
-        msg = 'Weak password. Must be at least 6 characters.';
-      }
-      setError(msg);
+      setError(err.message);
     }
   }
 
   if (user) {
     return (
-      <button className="ml-4 px-3 py-1 text-sm bg-gray-200 rounded" onClick={() => signOut(auth)}>
+      <button
+        className="ml-4 px-3 py-1 text-sm bg-gray-200 rounded"
+        onClick={() => {
+          localStorage.removeItem('token');
+          window.location.reload();
+        }}
+      >
         Sign Out
       </button>
     );
