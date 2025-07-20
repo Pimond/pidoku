@@ -1,6 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from './firebase';
+
+async function fetchMe(token) {
+  const res = await fetch('/api/me', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('invalid');
+  return res.json();
+}
 
 const AuthContext = createContext(null);
 
@@ -9,15 +15,24 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
+    const token = localStorage.getItem('token');
+    if (!token) {
       setLoading(false);
-    });
-    return unsub;
+      return;
+    }
+    fetchMe(token)
+      .then((data) => {
+        setUser({ uid: data.uid, token });
+        setLoading(false);
+      })
+      .catch(() => {
+        localStorage.removeItem('token');
+        setLoading(false);
+      });
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user }}>
+    <AuthContext.Provider value={{ user, setUser }}>
       {!loading && children}
     </AuthContext.Provider>
   );

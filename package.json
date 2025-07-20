@@ -18,7 +18,11 @@
     "react-dom": "^19.1.0",
     "react-router-dom": "^6.22.3",
     "sudoku": "^0.0.3",
-    "sudoku-gen": "^1.0.2"
+    "sudoku-gen": "^1.0.2",
+    "express": "^4.19.2",
+    "firebase-admin": "^11.10.1",
+    "node-fetch": "^3.3.2",
+    "dotenv": "^16.4.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.31.0",
