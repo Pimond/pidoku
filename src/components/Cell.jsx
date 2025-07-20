@@ -48,7 +48,7 @@ export default function Cell({
   const highlight = `${bg} ${text}`;
 
   const base =
-    "w-12 h-12 text-center text-lg cursor-pointer relative flex items-center justify-center";
+    "aspect-square w-full text-center text-lg cursor-pointer relative flex items-center justify-center";
   const border =
     `border 
     ${col % 3 === 0 ? "border-l-4 border-l-gray-400" : "border-l"} 
