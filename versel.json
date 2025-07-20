@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "builds": [
+    // Static build for your Vite frontend
+    { "src": "dist/**",     "use": "@vercel/static" },
+    // Single function for all /api/* routes
+    { "src": "api/index.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    // Route /api/* to your serverless wrapper
+    { "src": "/api/(.*)",   "dest": "/api/index.js" },
+    // Everything else → your static frontend
+    { "src": "/(.*)",       "dest": "/dist/$1" }
+  ]
+}
