@@ -1,5 +1,7 @@
-// api/index.js
-import serverless from 'serverless-http';
-import expressApp from '../server/index.js'; // your existing Express `app`
+// server/index.js
+import app from './app.js';
 
-export const handler = serverless(expressApp);
+const port = process.env.PORT || 3001;
+app.listen(port, () => {
+  console.log(`Server listening on port ${port}`);
+});
