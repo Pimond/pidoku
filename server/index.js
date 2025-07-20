@@ -1,3 +1,4 @@
+// server.js
 /* eslint-env node */
 /* global process */
 import express from 'express';
@@ -10,14 +11,18 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 
+// Initialize Firebase Admin SDK
 if (!admin.apps.length) {
   admin.initializeApp({
-    credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
+    credential: admin.credential.cert(
+      JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
+    ),
   });
 }
 
 const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY;
 
+// Helper to sign in via Firebase REST API
 async function signInWithPassword(email, password) {
   const res = await fetch(
     `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_API_KEY}`,
@@ -30,6 +35,9 @@ async function signInWithPassword(email, password) {
   return res.json();
 }
 
+// ── Public routes (no token required) ── //
+
+// POST /api/login
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -43,6 +51,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
+// POST /api/register
 app.post('/api/register', async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -57,10 +66,53 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
+// GET /api/puzzles/:id  (public read)
+app.get('/api/puzzles/:id', async (req, res) => {
+  try {
+    const snap = await admin
+      .firestore()
+      .collection('puzzles')
+      .doc(req.params.id)
+      .get();
+    if (!snap.exists) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+    res.json(snap.data());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/puzzles  (public create)
+app.post('/api/puzzles', async (req, res) => {
+  try {
+    const { puzzle, solution, difficulty } = req.body;
+    const docRef = await admin
+      .firestore()
+      .collection('puzzles')
+      .add({
+        puzzle,
+        solution,
+        difficulty,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    res.json({ id: docRef.id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Protected routes (require valid Firebase ID token) ── //
+
+// Authentication middleware
 app.use(async (req, res, next) => {
   const authHeader = req.headers.authorization || '';
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  if (!token) return res.status(401).json({ error: 'Missing token' });
+  const token = authHeader.startsWith('Bearer ')
+    ? authHeader.slice(7)
+    : null;
+  if (!token) {
+    return res.status(401).json({ error: 'Missing token' });
+  }
   try {
     const decoded = await admin.auth().verifyIdToken(token);
     req.user = decoded;
@@ -70,6 +122,7 @@ app.use(async (req, res, next) => {
   }
 });
 
+// GET /api/profile
 app.get('/api/profile', async (req, res) => {
   try {
     const gamesSnap = await admin
@@ -86,30 +139,7 @@ app.get('/api/profile', async (req, res) => {
   }
 });
 
-app.get('/api/puzzles/:id', async (req, res) => {
-  try {
-    const snap = await admin.firestore().collection('puzzles').doc(req.params.id).get();
-    if (!snap.exists) return res.status(404).json({ error: 'Not found' });
-    res.json(snap.data());
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/puzzles', async (req, res) => {
-  try {
-    const docRef = await admin.firestore().collection('puzzles').add({
-      puzzle: req.body.puzzle,
-      solution: req.body.solution,
-      difficulty: req.body.difficulty,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-    res.json({ id: docRef.id });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
+// GET /api/games/:id
 app.get('/api/games/:id', async (req, res) => {
   try {
     const snap = await admin
@@ -119,13 +149,16 @@ app.get('/api/games/:id', async (req, res) => {
       .collection('games')
       .doc(req.params.id)
       .get();
-    if (!snap.exists) return res.status(404).json({ error: 'Not found' });
+    if (!snap.exists) {
+      return res.status(404).json({ error: 'Not found' });
+    }
     res.json(snap.data());
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
+// POST /api/games
 app.post('/api/games', async (req, res) => {
   try {
     const ref = await admin
@@ -147,11 +180,13 @@ app.post('/api/games', async (req, res) => {
   }
 });
 
+// PATCH /api/games/:id
 app.patch('/api/games/:id', async (req, res) => {
   try {
     const data = { ...req.body };
-    if (data.completedAt === true) {
+    if (data.completed === true) {
       data.completedAt = admin.firestore.FieldValue.serverTimestamp();
+      delete data.completed;
     }
     await admin
       .firestore()
@@ -166,6 +201,7 @@ app.patch('/api/games/:id', async (req, res) => {
   }
 });
 
+// GET /api/me
 app.get('/api/me', (req, res) => {
   res.json({ uid: req.user.uid });
 });
