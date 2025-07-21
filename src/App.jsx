@@ -24,7 +24,7 @@ export default function App() {
           <AuthButtons />
         </div>
       </header>
-      <main className="flex-grow">
+      <main className="flex-grow self-center">
         <Routes>
           <Route path="/" element={<Game />} />
           <Route path="/profile" element={<Profile />} />

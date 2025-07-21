@@ -33,8 +33,8 @@ export default function Board({ board, selected, onCellSelect }) {
   }
 
   return (
-    <div className="inline-block bg-gray-200 rounded-md shadow-lg select-none">
-      <div className="grid grid-cols-9 w-full aspect-square">
+    <div className="inline-block bg-gray-200 rounded-md shadow-lg select-none w-full self-start">
+      <div className="grid grid-cols-9 min-w-100 aspect-square self-start">
         {board.map((row, rowIdx) =>
           row.map((cell, colIdx) => (
             <Cell
