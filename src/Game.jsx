@@ -385,11 +385,10 @@ export default function Game() {
                   whileHover={{ scale: 1.05 }}
                   disabled={seedInputMode}
                   onClick={() => setDifficulty(diff)}
-                  className={`w-24 px-4 py-2 rounded shadow transition ${
-                    difficulty === diff
+                  className={`w-24 px-4 py-2 rounded shadow transition ${difficulty === diff
                       ? "bg-blue-400 text-white"
                       : "bg-gray-200 hover:bg-gray-300"
-                  } ${seedInputMode ? "opacity-50 cursor-not-allowed" : ""}`}
+                    } ${seedInputMode ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   {diff.charAt(0).toUpperCase() + diff.slice(1)}
                 </Motion.button>
@@ -450,20 +449,35 @@ export default function Game() {
             </button>
             <AnimatePresence>
               {completed && correct && (
+
                 <Motion.div
                   key="correct"
                   initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  animate={{ opacity: [1, 1, 1, 1, 1, 0], y: [0] }}
+                  transition={{ ease: "easeInOut", duration: 8 }}
                   exit={{ opacity: 0, y: -10 }}
                   className="absolute -top-12 px-6 py-3 bg-green-200 text-green-800 rounded shadow text-xl font-bold"
+                  style={{
+                    zIndex: '1'
+                  }}
                 >
-                  <Confetti
-                    width={window.innerWidth}
-                    height={window.innerHeight}
-                    numberOfPieces={400}
-                  />
+
                   🎉 You solved it!
+
+                  <Confetti
+                    height={window.innerHeight}
+                    numberOfPieces={100}
+                    recycle={false}
+                    style={{
+                      position: 'fixed',
+                      top: 0,
+                      left: 0,
+                      width: '100vw',
+                      zIndex: '0'
+                    }}
+                  />
                 </Motion.div>
+
               )}
               {completed && !correct && (
                 <Motion.div

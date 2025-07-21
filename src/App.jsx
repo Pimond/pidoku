@@ -9,7 +9,7 @@ export default function App() {
   const { user } = useAuth();
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col ml-0">
+    <div className="min-h-screen bg-gray-50 flex flex-col ml-0 ">
       <header className="p-4 flex items-center shadow bg-white">
         <Link to="/" className="text-3xl font-bold">Pidoku</Link>
         <div className="ml-auto flex items-center">
@@ -24,7 +24,7 @@ export default function App() {
           <AuthButtons />
         </div>
       </header>
-      <main className="flex-grow self-center">
+      <main className="flex-grow self-center w-full max-w-120">
         <Routes>
           <Route path="/" element={<Game />} />
           <Route path="/profile" element={<Profile />} />
