@@ -17,7 +17,15 @@ export default function Cell({
   onSelect,
   isConflict,
 }) {
-  const { value, notes, fixed, appearDelay = 0 } = cell;
+  const {
+    value,
+    notes,
+    fixed,
+    appearDelay = 0,
+    completedDigit = false,
+    completionId,
+    completionIsFinal = false,
+  } = cell;
 
   let bg = "bg-white";
   let text = "text-blue-500";
@@ -81,20 +89,40 @@ export default function Cell({
       {value ? (
         <AnimatePresence mode="wait">
           <Motion.div
-            key={cell.value}
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1, x: isConflict ? [0, -4, 4, -4, 4, 0] : 0 }}
+            key={value + (completedDigit ? `-${completionId}` : '')}
+            initial={
+              completedDigit && !completionIsFinal
+                ? { scale: 1 }
+                : { scale: 0, opacity: 0 }
+            }
+            animate={{
+              scale: completedDigit
+                ? completionIsFinal
+                  ? [1.4, 1]
+                  : [1.1, 1]
+                : 1,
+              opacity: 1,
+              x: isConflict ? [0, -4, 4, -4, 4, 0] : 0,
+            }}
             exit={{ scale: 0, opacity: 0 }}
             transition={{
               delay: appearDelay,
               type: "spring",
-              stiffness: 300,
-              damping: 20,
+              stiffness: completionIsFinal ? 500 : 300,
+              damping: completionIsFinal ? 20 : 20,
               duration: 0.2,
               x: { type: "tween", duration: 0.3, ease: "easeInOut" },
             }}
           >
-            <span className={`text-2xl ${text} ${font}`}>{value}</span>
+            <span
+              className={`text-2xl ${font} ${
+                completedDigit
+                  ? 'bg-gradient-to-r from-green-400 via-blue-500 to-purple-600 text-transparent bg-clip-text'
+                  : text
+              }`}
+            >
+              {value}
+            </span>
           </Motion.div>
         </AnimatePresence>
       ) : notes && notes.length > 0 ? (
