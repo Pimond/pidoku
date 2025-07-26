@@ -23,7 +23,6 @@ export default function Cell({
     fixed,
     appearDelay = 0,
     completedDigit = false,
-    completionId,
     completionIsFinal = false,
   } = cell;
 
@@ -89,12 +88,8 @@ export default function Cell({
       {value ? (
         <AnimatePresence mode="wait">
           <Motion.div
-            key={value + (completedDigit ? `-${completionId}` : '')}
-            initial={
-              completedDigit && !completionIsFinal
-                ? { scale: 1 }
-                : { scale: 0, opacity: 0 }
-            }
+            key={value}
+            initial={{ scale: 0, opacity: 0 }}
             animate={{
               scale: completedDigit
                 ? completionIsFinal
