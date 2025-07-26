@@ -110,7 +110,7 @@ export default function Cell({
                 className="absolute inset-0 bg-gradient-to-r from-green-400 via-blue-500 to-purple-600 text-transparent bg-clip-text"
                 initial={false}
                 animate={{ opacity: completedDigit ? 1 : 0 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                transition={{ type: "spring", stiffness: 3000, damping: 2 }}
               >
                 {value}
               </Motion.span>
