@@ -23,7 +23,6 @@ export default function Cell({
     fixed,
     appearDelay = 0,
     completedDigit = false,
-    completionIsFinal = false,
   } = cell;
 
   let bg = "bg-white";
@@ -91,11 +90,7 @@ export default function Cell({
             key={value}
             initial={{ scale: 0, opacity: 0 }}
             animate={{
-              scale: completedDigit
-                ? completionIsFinal
-                  ? [1.4, 1]
-                  : [1.1, 1]
-                : 1,
+              scale: 1,
               opacity: 1,
               x: isConflict ? [0, -4, 4, -4, 4, 0] : 0,
             }}
@@ -103,20 +98,22 @@ export default function Cell({
             transition={{
               delay: appearDelay,
               type: "spring",
-              stiffness: completionIsFinal ? 500 : 300,
-              damping: completionIsFinal ? 20 : 20,
+              stiffness: 300,
+              damping: 20,
               duration: 0.2,
               x: { type: "tween", duration: 0.3, ease: "easeInOut" },
             }}
           >
-            <span
-              className={`text-2xl ${font} ${
-                completedDigit
-                  ? 'bg-gradient-to-r from-green-400 via-blue-500 to-purple-600 text-transparent bg-clip-text'
-                  : text
-              }`}
-            >
-              {value}
+            <span className={`relative inline-block text-2xl ${font}`}>
+              <span className={text}>{value}</span>
+              <Motion.span
+                className="absolute inset-0 bg-gradient-to-r from-green-400 via-blue-500 to-purple-600 text-transparent bg-clip-text"
+                initial={false}
+                animate={{ opacity: completedDigit ? 1 : 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              >
+                {value}
+              </Motion.span>
             </span>
           </Motion.div>
         </AnimatePresence>
