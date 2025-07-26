@@ -449,7 +449,7 @@ export default function Game() {
     }
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [stage, selected]);
+  }, [stage, selected, noteMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const selectedCellNotes =
     board && selected[0] !== null && selected[1] !== null
