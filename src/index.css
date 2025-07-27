@@ -2,3 +2,26 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.fullscreen-progress {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  transform: rotate(90deg);
+  transform-origin: bottom left;
+  width: 100vh;
+  height: 100vw;
+  opacity: 0.3;
+}
+
+.fullscreen-progress .progressBar {
+  height: 100%;
+}
+
+.fullscreen-progress .progressTrack,
+.fullscreen-progress .progressFill {
+  height: 100%;
+  border-radius: 0;
+  margin: 0;
+}
