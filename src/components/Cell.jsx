@@ -17,7 +17,13 @@ export default function Cell({
   onSelect,
   isConflict,
 }) {
-  const { value, notes, fixed, appearDelay = 0 } = cell;
+  const {
+    value,
+    notes,
+    fixed,
+    appearDelay = 0,
+    completedDigit = false,
+  } = cell;
 
   let bg = "bg-white";
   let text = "text-blue-500";
@@ -81,9 +87,13 @@ export default function Cell({
       {value ? (
         <AnimatePresence mode="wait">
           <Motion.div
-            key={cell.value}
+            key={value}
             initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1, x: isConflict ? [0, -4, 4, -4, 4, 0] : 0 }}
+            animate={{
+              scale: 1,
+              opacity: 1,
+              x: isConflict ? [0, -4, 4, -4, 4, 0] : 0,
+            }}
             exit={{ scale: 0, opacity: 0 }}
             transition={{
               delay: appearDelay,
@@ -94,7 +104,17 @@ export default function Cell({
               x: { type: "tween", duration: 0.3, ease: "easeInOut" },
             }}
           >
-            <span className={`text-2xl ${text} ${font}`}>{value}</span>
+            <span className={`relative inline-block text-2xl ${font}`}>
+              <span className={text}>{value}</span>
+              <Motion.span
+                className="absolute inset-0 bg-gradient-to-r from-green-400 via-blue-500 to-purple-600 text-transparent bg-clip-text"
+                initial={false}
+                animate={{ opacity: completedDigit ? 1 : 0 }}
+                transition={{ type: "spring", stiffness: 3000, damping: 2 }}
+              >
+                {value}
+              </Motion.span>
+            </span>
           </Motion.div>
         </AnimatePresence>
       ) : notes && notes.length > 0 ? (

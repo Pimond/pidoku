@@ -52,6 +52,39 @@ function arrayToBoard(arr) {
   );
 }
 
+function countDigits(board) {
+  const counts = {};
+  board.forEach((row) =>
+    row.forEach((cell) => {
+      if (cell.value) {
+        counts[cell.value] = (counts[cell.value] || 0) + 1;
+      }
+    })
+  );
+  return counts;
+}
+
+function markCompleted(board) {
+  const counts = countDigits(board);
+  const completedIds = {};
+  return board.map((row) =>
+    row.map((cell) => {
+      if (counts[cell.value] === 9) {
+        if (!completedIds[cell.value]) {
+          completedIds[cell.value] = Date.now() + Math.random();
+        }
+        return {
+          ...cell,
+          completedDigit: true,
+          completionId: completedIds[cell.value],
+          completionIsFinal: false,
+        };
+      }
+      return cell;
+    })
+  );
+}
+
 export default function Game() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -105,7 +138,15 @@ export default function Game() {
     setDifficulty(data.difficulty);
     setPuzzleData({ puzzle, solution, seed: seedValue });
     setSeed(seedValue);
-    let boardData = puzzle.map((row) => row.map((c) => ({ ...c })));
+    let boardData = puzzle.map((row) =>
+      row.map((c) => ({
+        ...c,
+        completedDigit: false,
+        completionId: null,
+        completionIsFinal: false,
+      }))
+    );
+    boardData = markCompleted(boardData);
     let secs = 0;
     if (gameValue) {
       const resGame = await fetch(`/api/games/${gameValue}`, {
@@ -113,7 +154,16 @@ export default function Game() {
       });
       if (resGame.ok) {
         const g = await resGame.json();
-        boardData = arrayToBoard(g.board);
+        boardData = markCompleted(
+          arrayToBoard(g.board).map((row) =>
+            row.map((c) => ({
+              ...c,
+              completedDigit: false,
+              completionId: null,
+              completionIsFinal: false,
+            }))
+          )
+        );
         secs = g.secondsElapsed || 0;
         setGameId(gameValue);
       }
@@ -180,6 +230,34 @@ export default function Game() {
           })
         );
       }
+      if (!noteMode) {
+        const prevCounts = countDigits(prev);
+        const newCounts = countDigits(newBoard);
+        const completionDigit =
+          newCounts[val] === 9 && prevCounts[val] !== 9 ? val : null;
+        const completionId = completionDigit ? Date.now() : null;
+        newBoard = newBoard.map((r, i) =>
+          r.map((cell, j) => {
+            const digit = cell.value;
+            const count = newCounts[digit] || 0;
+            const isCompleted = count === 9;
+            const isFinal =
+              completionDigit && digit === completionDigit && i === row && j === col;
+            const id =
+              completionDigit && digit === completionDigit
+                ? completionId
+                : isCompleted
+                ? cell.completionId
+                : null;
+            return {
+              ...cell,
+              completedDigit: isCompleted,
+              completionId: id,
+              completionIsFinal: isFinal,
+            };
+          })
+        );
+      }
       return newBoard;
     });
   }
@@ -187,13 +265,23 @@ export default function Game() {
   function handleErase() {
     const [row, col] = selected;
     if (row === null || col === null) return;
-    setBoard((prev) =>
-      prev.map((r, i) =>
+    setBoard((prev) => {
+      let newBoard = prev.map((r, i) =>
         r.map((cell, j) =>
           i === row && j === col && !cell.fixed ? { ...cell, value: "", notes: [] } : cell
         )
-      )
-    );
+      );
+      const counts = countDigits(newBoard);
+      newBoard = newBoard.map((r) =>
+        r.map((cell) => ({
+          ...cell,
+          completedDigit: counts[cell.value] === 9,
+          completionId: counts[cell.value] === 9 ? cell.completionId : null,
+          completionIsFinal: false,
+        }))
+      );
+      return newBoard;
+    });
   }
 
   function handleCopySeed() {
@@ -211,7 +299,17 @@ export default function Game() {
     }
     setPuzzleData(next);
     setSeed(next.seed);
-    setBoard(next.puzzle.map((row) => row.map((cell) => ({ ...cell }))));
+    const boardData = markCompleted(
+      next.puzzle.map((row) =>
+        row.map((cell) => ({
+          ...cell,
+          completedDigit: false,
+          completionId: null,
+          completionIsFinal: false,
+        }))
+      )
+    );
+    setBoard(boardData);
     setSelected([null, null]);
     setCompleted(false);
     setCorrect(false);
@@ -351,7 +449,7 @@ export default function Game() {
     }
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [stage, selected]);
+  }, [stage, selected, noteMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const selectedCellNotes =
     board && selected[0] !== null && selected[1] !== null
