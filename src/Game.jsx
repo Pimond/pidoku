@@ -6,6 +6,7 @@ import Confetti from "react-confetti";
 import { useAuth } from "./AuthProvider";
 import { useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion as Motion } from "motion/react";
+import BackgroundProgress from "./components/BackgroundProgress.jsx";
 
 async function createPuzzle(diff) {
   const next = generatePuzzle(diff);
@@ -107,6 +108,7 @@ export default function Game() {
   const [seed, setSeed] = useState("");
   const [gameId, setGameId] = useState(null);
   const [seedCopied, setSeedCopied] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     const seedParam = searchParams.get("seed");
@@ -363,6 +365,12 @@ export default function Game() {
   }, [board, puzzleData]);
 
   useEffect(() => {
+    if (!board) return;
+    const filled = board.flat().filter((c) => c.value).length;
+    setProgress((filled / 81) * 100);
+  }, [board]);
+
+  useEffect(() => {
     if (!timerActive) return;
     const interval = setInterval(() => {
       setSecondsElapsed((secs) => secs + 1);
@@ -464,6 +472,7 @@ export default function Game() {
 
   return (
     <div className="p-4 flex flex-col items-center">
+      <BackgroundProgress progress={progress} />
       <AnimatePresence mode="wait">
         {stage === "select" ? (
           <Motion.div
