@@ -19,6 +19,7 @@
     "firebase-admin": "^11.10.1",
     "motion": "^12.23.3",
     "node-fetch": "^3.3.2",
+    "pretty-progressbar": "^0.0.8",
     "react": "^19.1.0",
     "react-confetti": "^6.4.0",
     "react-dom": "^19.1.0",
