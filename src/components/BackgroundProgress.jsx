@@ -12,10 +12,13 @@ export default function BackgroundProgress({ progress }) {
   const progressStyle = {
     background: 'rgba(59, 130, 246, 0.2)',
     transition: 'transform 0.3s linear',
+    backgroundSize: '200% 200%',
+    animation: 'gradient-wave 6s ease-in-out infinite',
+    boxShadow: '0 0 20px rgba(59, 130, 246, 0.5)',
   };
 
   return (
-    <div className="fixed inset-0 -z-10 pointer-events-none">
+    <div className="fixed inset-0 z-0 pointer-events-none">
       <PrettyProgressbar
         percentage={progress}
         label={false}
