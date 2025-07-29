@@ -366,8 +366,9 @@ export default function Game() {
 
   useEffect(() => {
     if (!board) return;
-    const filled = board.flat().filter((c) => c.value).length;
-    setProgress((filled / 81) * 100);
+    const playable = board.flat().filter((c) => !c.fixed);
+    const filled = playable.filter((c) => c.value).length;
+    setProgress((filled / playable.length) * 100);
   }, [board]);
 
   useEffect(() => {
@@ -472,7 +473,7 @@ export default function Game() {
 
   return (
     <div className="p-4 flex flex-col items-center">
-      <BackgroundProgress progress={progress} />
+      {stage === "play" && <BackgroundProgress progress={progress} />}
       <AnimatePresence mode="wait">
         {stage === "select" ? (
           <Motion.div
