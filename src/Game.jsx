@@ -307,14 +307,17 @@ export default function Game() {
 
   async function startPuzzle() {
     let next;
+    let seedValue;
     if (seedInputMode && seedText) {
+      seedValue = seedText;
       await loadSeed(seedText);
-      return;
+      return seedValue;
     } else {
       next = await createPuzzle(difficulty);
+      seedValue = next.seed;
     }
     setPuzzleData(next);
-    setSeed(next.seed);
+    setSeed(seedValue);
     const boardData = markCompleted(
       next.puzzle.map((row) =>
         row.map((cell) => ({
@@ -342,7 +345,7 @@ export default function Game() {
           Authorization: `Bearer ${user.token}`,
         },
         body: JSON.stringify({
-          puzzleSeed: next.seed,
+          puzzleSeed: seedValue,
           difficulty,
           board: boardToArray(next.puzzle.map((row) => row.map((c) => ({ ...c })))),
         }),
@@ -351,6 +354,24 @@ export default function Game() {
       setGameId(g.id);
     }
     setStage("play");
+    return seedValue;
+  }
+
+  async function startLobby() {
+    const usedSeed = await startPuzzle();
+    if (!user) return;
+    const res = await fetch('/api/lobbies', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${user.token}`,
+      },
+      body: JSON.stringify({ hostUid: user.uid, difficulty, seed: usedSeed }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      alert(`Lobby created! Join code: ${data.joinCode}`);
+    }
   }
 
   function resetToSelect() {
@@ -603,16 +624,16 @@ export default function Game() {
                       transition={{ duration: 0.2 }}
                       className="flex flex-col items-center w-full"
                     >
-                      <div className="flex gap-4 mb-6">
+                      <div className="flex w-full mb-6">
                         {["join", "create"].map((mode) => (
                           <Motion.button
                             key={mode}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => setLobbyMode(mode)}
-                            className={`px-4 py-2 rounded font-bold ${
+                            className={`w-1/2 py-2 font-bold transition-colors ${
                               lobbyMode === mode
                                 ? "bg-blue-400 text-white"
-                                : "bg-gray-200"
+                                : "bg-gray-200 text-gray-700"
                             }`}
                           >
                             {mode === "join" ? "Join" : "Create"}
@@ -681,6 +702,13 @@ export default function Game() {
                                 )}
                               </AnimatePresence>
                             </div>
+                            <Motion.button
+                              whileTap={{ scale: 0.95 }}
+                              onClick={startLobby}
+                              className="px-6 py-2 bg-green-400 rounded text-white font-bold"
+                            >
+                              Create
+                            </Motion.button>
                           </Motion.div>
                         )}
                       </AnimatePresence>
