@@ -489,7 +489,7 @@ export default function Game() {
       <BackgroundProgress progress={progress} />
       <AnimatePresence mode="wait">
         {stage === "select" ? (
-          <Motion.div
+        <Motion.div
             key="select"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -497,7 +497,11 @@ export default function Game() {
             transition={{ duration: 0.2 }}
             className="w-full max-w-md mt-10"
           >
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <Motion.div
+              layout
+              transition={{ layout: { duration: 0.2 } }}
+              className="bg-white rounded-lg shadow-md overflow-hidden"
+            >
               <div className="flex">
                 {["solo", "lobby"].map((tab) => (
                   <Motion.button
@@ -520,7 +524,7 @@ export default function Game() {
                   </Motion.button>
                 ))}
               </div>
-              <div className="p-6 flex flex-col items-center">
+              <Motion.div layout className="p-6 flex flex-col items-center">
                 <AnimatePresence mode="wait">
                   {homeTab === "solo" ? (
                     <Motion.div
@@ -718,8 +722,8 @@ export default function Game() {
                     </Motion.div>
                   )}
                 </AnimatePresence>
-              </div>
-            </div>
+              </Motion.div>
+            </Motion.div>
           </Motion.div>
         ) : (
           <Motion.div
