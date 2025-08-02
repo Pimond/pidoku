@@ -94,6 +94,7 @@ export default function Game() {
     ? "loading"
     : "select";
   const [stage, setStage] = useState(initialStage);
+  const [homeTab, setHomeTab] = useState("solo");
   const [puzzleData, setPuzzleData] = useState(null);
   const [board, setBoard] = useState(null);
   const [selected, setSelected] = useState([null, null]);
@@ -483,61 +484,84 @@ export default function Game() {
             transition={{ duration: 0.2 }}
             className="flex flex-col items-center mt-10"
           >
-            <h2 className="text-2xl font-bold mb-4">Choose Difficulty</h2>
-            <div className="flex flex-wrap items-center justify-center gap-4 mb-4">
-              {["easy", "medium", "hard"].map((diff) => (
+            <div className="flex gap-4 mb-6">
+              {["solo", "lobby"].map((tab) => (
                 <Motion.button
-                  key={diff}
-                  whileTap={{ scale: 0.9 }}
-                  whileHover={{ scale: 1.05 }}
-                  disabled={seedInputMode}
-                  onClick={() => setDifficulty(diff)}
-                  className={`w-24 px-4 py-2 rounded shadow transition ${difficulty === diff
-                      ? "bg-blue-400 text-white"
-                      : "bg-gray-200 hover:bg-gray-300"
-                    } ${seedInputMode ? "opacity-50 cursor-not-allowed" : ""}`}
+                  key={tab}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setHomeTab(tab)}
+                  className={`px-4 py-2 rounded font-bold ${
+                    homeTab === tab ? "bg-blue-400 text-white" : "bg-gray-200"
+                  }`}
                 >
-                  {diff.charAt(0).toUpperCase() + diff.slice(1)}
+                  {tab === "solo" ? "Solo" : "Lobby"}
                 </Motion.button>
               ))}
             </div>
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <span className="text-sm">Seed</span>
-              <Motion.div
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setSeedInputMode((s) => !s)}
-                className={`w-10 h-6 rounded-full bg-gray-300 flex items-center p-1 cursor-pointer ${seedInputMode ? "bg-purple-400" : ""}`}
-              >
-                <Motion.div
-                  layout
-                  transition={{ type: "spring", stiffness: 700, damping: 30 }}
-                  className="w-4 h-4 bg-white rounded-full shadow"
-                  style={{ x: seedInputMode ? 16 : 0 }}
-                />
-              </Motion.div>
-              <AnimatePresence>
-                {seedInputMode && (
-                  <Motion.input
-                    key="seedinput"
-                    initial={{ width: 0, opacity: 0 }}
-                    animate={{ width: 150, opacity: 1 }}
-                    exit={{ width: 0, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    value={seedText}
-                    onChange={(e) => setSeedText(e.target.value)}
-                    placeholder="Enter seed"
-                    className="px-2 py-1 border rounded"
-                  />
-                )}
-              </AnimatePresence>
-            </div>
-            <Motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={startPuzzle}
-              className="px-6 py-2 bg-green-400 rounded text-white font-bold"
-            >
-              Start
-            </Motion.button>
+            {homeTab === "solo" ? (
+              <>
+                <h2 className="text-2xl font-bold mb-4">Choose Difficulty</h2>
+                <div className="flex flex-wrap items-center justify-center gap-4 mb-4">
+                  {["easy", "medium", "hard"].map((diff) => (
+                    <Motion.button
+                      key={diff}
+                      whileTap={{ scale: 0.9 }}
+                      whileHover={{ scale: 1.05 }}
+                      disabled={seedInputMode}
+                      onClick={() => setDifficulty(diff)}
+                      className={`w-24 px-4 py-2 rounded shadow transition ${
+                        difficulty === diff
+                          ? "bg-blue-400 text-white"
+                          : "bg-gray-200 hover:bg-gray-300"
+                      } ${seedInputMode ? "opacity-50 cursor-not-allowed" : ""}`}
+                    >
+                      {diff.charAt(0).toUpperCase() + diff.slice(1)}
+                    </Motion.button>
+                  ))}
+                </div>
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <span className="text-sm">Seed</span>
+                  <Motion.div
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setSeedInputMode((s) => !s)}
+                    className={`w-10 h-6 rounded-full bg-gray-300 flex items-center p-1 cursor-pointer ${
+                      seedInputMode ? "bg-purple-400" : ""
+                    }`}
+                  >
+                    <Motion.div
+                      layout
+                      transition={{ type: "spring", stiffness: 700, damping: 30 }}
+                      className="w-4 h-4 bg-white rounded-full shadow"
+                      style={{ x: seedInputMode ? 16 : 0 }}
+                    />
+                  </Motion.div>
+                  <AnimatePresence>
+                    {seedInputMode && (
+                      <Motion.input
+                        key="seedinput"
+                        initial={{ width: 0, opacity: 0 }}
+                        animate={{ width: 150, opacity: 1 }}
+                        exit={{ width: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        value={seedText}
+                        onChange={(e) => setSeedText(e.target.value)}
+                        placeholder="Enter seed"
+                        className="px-2 py-1 border rounded"
+                      />
+                    )}
+                  </AnimatePresence>
+                </div>
+                <Motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={startPuzzle}
+                  className="px-6 py-2 bg-green-400 rounded text-white font-bold"
+                >
+                  Start
+                </Motion.button>
+              </>
+            ) : (
+              <div className="mt-4">Lobby coming soon</div>
+            )}
           </Motion.div>
         ) : (
           <Motion.div
