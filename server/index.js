@@ -1,10 +1,14 @@
 // server.js
 /* eslint-env node */
 /* global process */
-import express from 'express';
 import admin from 'firebase-admin';
 import fetch from 'node-fetch';
 import dotenv from 'dotenv';
+import { createRequire } from 'module';
+
+// Express is CommonJS; importing via createRequire avoids interop issues
+const require = createRequire(import.meta.url);
+const express = require('express');
 
 dotenv.config();
 
