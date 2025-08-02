@@ -204,6 +204,59 @@ app.patch('/api/games/:id', async (req, res) => {
   }
 });
 
+// POST /api/lobbies
+app.post('/api/lobbies', async (req, res) => {
+  try {
+    const { hostUid, difficulty, seed } = req.body;
+    if (hostUid !== req.user.uid) {
+      return res.status(403).json({ error: 'Host UID mismatch' });
+    }
+
+    const lobbiesRef = admin.firestore().collection('lobbies');
+
+    let joinCode;
+    let exists = true;
+    while (exists) {
+      joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const snap = await lobbiesRef.doc(joinCode).get();
+      exists = snap.exists;
+    }
+
+    await lobbiesRef.doc(joinCode).set({
+      hostUid,
+      difficulty,
+      seed,
+      players: [hostUid],
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.json({ joinCode });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/lobbies/join
+app.post('/api/lobbies/join', async (req, res) => {
+  try {
+    const { joinCode } = req.body;
+    const lobbyRef = admin.firestore().collection('lobbies').doc(joinCode);
+    const snap = await lobbyRef.get();
+    if (!snap.exists) {
+      return res.status(404).json({ error: 'Invalid join code' });
+    }
+
+    await lobbyRef.update({
+      players: admin.firestore.FieldValue.arrayUnion(req.user.uid),
+    });
+
+    const updatedSnap = await lobbyRef.get();
+    res.json({ lobby: { joinCode, ...updatedSnap.data() } });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/me
 app.get('/api/me', (req, res) => {
   res.json({ uid: req.user.uid });
