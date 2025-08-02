@@ -5,7 +5,11 @@ import { generatePuzzle, gridToString, stringToGrid } from "./utils/generatePuzz
 import Confetti from "react-confetti";
 import { useAuth } from "./AuthProvider";
 import { useSearchParams } from "react-router-dom";
-import { AnimatePresence, motion as Motion } from "motion/react";
+import {
+  AnimatePresence,
+  motion as Motion,
+  useAnimationControls,
+} from "motion/react";
 import BackgroundProgress from "./components/BackgroundProgress.jsx";
 
 async function createPuzzle(diff) {
@@ -95,6 +99,7 @@ export default function Game() {
     : "select";
   const [stage, setStage] = useState(initialStage);
   const [homeTab, setHomeTab] = useState("solo");
+  const [lobbyMode, setLobbyMode] = useState(null);
   const [puzzleData, setPuzzleData] = useState(null);
   const [board, setBoard] = useState(null);
   const [selected, setSelected] = useState([null, null]);
@@ -110,6 +115,8 @@ export default function Game() {
   const [gameId, setGameId] = useState(null);
   const [seedCopied, setSeedCopied] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [joinCode, setJoinCode] = useState("");
+  const joinInputControls = useAnimationControls();
 
   useEffect(() => {
     const seedParam = searchParams.get("seed");
@@ -122,6 +129,12 @@ export default function Game() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (lobbyMode === "join") {
+      joinInputControls.start({ scale: [1, 1.05, 1] });
+    }
+  }, [joinCode, lobbyMode, joinInputControls]);
 
   async function loadSeed(seedValue, gameValue) {
     const resPuzzle = await fetch(`/api/puzzles/${seedValue}`, {
@@ -474,94 +487,245 @@ export default function Game() {
   return (
     <div className="p-4 flex flex-col items-center">
       <BackgroundProgress progress={progress} />
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="popLayout">
         {stage === "select" ? (
-          <Motion.div
+        <Motion.div
             key="select"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ duration: 0.2 }}
-            className="flex flex-col items-center mt-10"
+            className="w-full max-w-md mt-10"
           >
-            <div className="flex gap-4 mb-6">
-              {["solo", "lobby"].map((tab) => (
-                <Motion.button
-                  key={tab}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setHomeTab(tab)}
-                  className={`px-4 py-2 rounded font-bold ${
-                    homeTab === tab ? "bg-blue-400 text-white" : "bg-gray-200"
-                  }`}
-                >
-                  {tab === "solo" ? "Solo" : "Lobby"}
-                </Motion.button>
-              ))}
-            </div>
-            {homeTab === "solo" ? (
-              <>
-                <h2 className="text-2xl font-bold mb-4">Choose Difficulty</h2>
-                <div className="flex flex-wrap items-center justify-center gap-4 mb-4">
-                  {["easy", "medium", "hard"].map((diff) => (
-                    <Motion.button
-                      key={diff}
-                      whileTap={{ scale: 0.9 }}
-                      whileHover={{ scale: 1.05 }}
-                      disabled={seedInputMode}
-                      onClick={() => setDifficulty(diff)}
-                      className={`w-24 px-4 py-2 rounded shadow transition ${
-                        difficulty === diff
-                          ? "bg-blue-400 text-white"
-                          : "bg-gray-200 hover:bg-gray-300"
-                      } ${seedInputMode ? "opacity-50 cursor-not-allowed" : ""}`}
-                    >
-                      {diff.charAt(0).toUpperCase() + diff.slice(1)}
-                    </Motion.button>
-                  ))}
-                </div>
-                <div className="flex items-center justify-center gap-2 mb-4">
-                  <span className="text-sm">Seed</span>
-                  <Motion.div
+            <Motion.div
+              layout
+              transition={{ layout: { duration: 0.2 } }}
+              className="bg-white rounded-lg shadow-md overflow-hidden"
+            >
+              <div className="flex">
+                {["solo", "lobby"].map((tab) => (
+                  <Motion.button
+                    key={tab}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => setSeedInputMode((s) => !s)}
-                    className={`w-10 h-6 rounded-full bg-gray-300 flex items-center p-1 cursor-pointer ${
-                      seedInputMode ? "bg-purple-400" : ""
+                    onClick={() => {
+                      setHomeTab(tab);
+                      if (tab === "lobby") {
+                        setLobbyMode(null);
+                        setJoinCode("");
+                      }
+                    }}
+                    className={`w-1/2 py-2 font-bold transition-colors ${
+                      homeTab === tab
+                        ? "bg-blue-400 text-white"
+                        : "bg-gray-200 text-gray-700"
                     }`}
                   >
+                    {tab === "solo" ? "Solo" : "Lobby"}
+                  </Motion.button>
+                ))}
+              </div>
+              <Motion.div layout className="p-6 flex flex-col items-center">
+                <AnimatePresence mode="popLayout">
+                  {homeTab === "solo" ? (
                     <Motion.div
-                      layout
-                      transition={{ type: "spring", stiffness: 700, damping: 30 }}
-                      className="w-4 h-4 bg-white rounded-full shadow"
-                      style={{ x: seedInputMode ? 16 : 0 }}
-                    />
-                  </Motion.div>
-                  <AnimatePresence>
-                    {seedInputMode && (
-                      <Motion.input
-                        key="seedinput"
-                        initial={{ width: 0, opacity: 0 }}
-                        animate={{ width: 150, opacity: 1 }}
-                        exit={{ width: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        value={seedText}
-                        onChange={(e) => setSeedText(e.target.value)}
-                        placeholder="Enter seed"
-                        className="px-2 py-1 border rounded"
-                      />
-                    )}
-                  </AnimatePresence>
-                </div>
-                <Motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={startPuzzle}
-                  className="px-6 py-2 bg-green-400 rounded text-white font-bold"
-                >
-                  Start
-                </Motion.button>
-              </>
-            ) : (
-              <div className="mt-4">Lobby coming soon</div>
-            )}
+                      key="solo-tab"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex flex-col items-center"
+                    >
+                      <h2 className="text-2xl font-bold mb-4">Choose Difficulty</h2>
+                      <div className="flex flex-wrap items-center justify-center gap-4 mb-4">
+                        {["easy", "medium", "hard"].map((diff) => (
+                          <Motion.button
+                            key={diff}
+                            whileTap={{ scale: 0.9 }}
+                            whileHover={{ scale: 1.05 }}
+                            disabled={seedInputMode}
+                            onClick={() => setDifficulty(diff)}
+                            className={`w-24 px-4 py-2 rounded shadow transition ${
+                              difficulty === diff
+                                ? "bg-blue-400 text-white"
+                                : "bg-gray-200 hover:bg-gray-300"
+                            } ${seedInputMode ? "opacity-50 cursor-not-allowed" : ""}`}
+                          >
+                            {diff.charAt(0).toUpperCase() + diff.slice(1)}
+                          </Motion.button>
+                        ))}
+                      </div>
+                      <div className="flex items-center justify-center gap-2 mb-4">
+                        <span className="text-sm">Seed</span>
+                        <Motion.div
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => setSeedInputMode((s) => !s)}
+                          className={`w-10 h-6 rounded-full bg-gray-300 flex items-center p-1 cursor-pointer ${
+                            seedInputMode ? "bg-purple-400" : ""
+                          }`}
+                        >
+                          <Motion.div
+                            layout
+                            transition={{ type: "spring", stiffness: 700, damping: 30 }}
+                            className="w-4 h-4 bg-white rounded-full shadow"
+                            style={{ x: seedInputMode ? 16 : 0 }}
+                          />
+                        </Motion.div>
+                        <AnimatePresence>
+                          {seedInputMode && (
+                            <Motion.input
+                              key="seedinput-solo"
+                              initial={{ width: 0, opacity: 0 }}
+                              animate={{ width: 150, opacity: 1 }}
+                              exit={{ width: 0, opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                              value={seedText}
+                              onChange={(e) => setSeedText(e.target.value)}
+                              placeholder="Enter seed"
+                              className="px-2 py-1 border rounded"
+                            />
+                          )}
+                        </AnimatePresence>
+                      </div>
+                      <Motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={startPuzzle}
+                        className="px-6 py-2 bg-green-400 rounded text-white font-bold"
+                      >
+                        Start
+                      </Motion.button>
+                    </Motion.div>
+                  ) : (
+                    <Motion.div
+                      key="lobby-tab"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex flex-col items-center w-full"
+                    >
+                      <div className="flex gap-4 mb-6">
+                        {["join", "create"].map((mode) => (
+                          <Motion.button
+                            key={mode}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => setLobbyMode(mode)}
+                            className={`px-4 py-2 rounded font-bold ${
+                              lobbyMode === mode
+                                ? "bg-blue-400 text-white"
+                                : "bg-gray-200"
+                            }`}
+                          >
+                            {mode === "join" ? "Join" : "Create"}
+                          </Motion.button>
+                        ))}
+                      </div>
+                      <AnimatePresence mode="popLayout">
+                        {lobbyMode === "create" && (
+                          <Motion.div
+                            layout
+                            key="create-mode"
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.2 }}
+                            className="flex flex-col items-center w-full"
+                          >
+                            <h2 className="text-2xl font-bold mb-4">Choose Difficulty</h2>
+                            <div className="flex flex-wrap items-center justify-center gap-4 mb-4">
+                              {["easy", "medium", "hard"].map((diff) => (
+                                <Motion.button
+                                  key={diff}
+                                  whileTap={{ scale: 0.9 }}
+                                  whileHover={{ scale: 1.05 }}
+                                  disabled={seedInputMode}
+                                  onClick={() => setDifficulty(diff)}
+                                  className={`w-24 px-4 py-2 rounded shadow transition ${
+                                    difficulty === diff
+                                      ? "bg-blue-400 text-white"
+                                      : "bg-gray-200 hover:bg-gray-300"
+                                  } ${seedInputMode ? "opacity-50 cursor-not-allowed" : ""}`}
+                                >
+                                  {diff.charAt(0).toUpperCase() + diff.slice(1)}
+                                </Motion.button>
+                              ))}
+                            </div>
+                            <div className="flex items-center justify-center gap-2 mb-4">
+                              <span className="text-sm">Seed</span>
+                              <Motion.div
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => setSeedInputMode((s) => !s)}
+                                className={`w-10 h-6 rounded-full bg-gray-300 flex items-center p-1 cursor-pointer ${
+                                  seedInputMode ? "bg-purple-400" : ""
+                                }`}
+                              >
+                                <Motion.div
+                                  layout
+                                  transition={{ type: "spring", stiffness: 700, damping: 30 }}
+                                  className="w-4 h-4 bg-white rounded-full shadow"
+                                  style={{ x: seedInputMode ? 16 : 0 }}
+                                />
+                              </Motion.div>
+                              <AnimatePresence>
+                                {seedInputMode && (
+                                  <Motion.input
+                                    key="seedinput-create"
+                                    initial={{ width: 0, opacity: 0 }}
+                                    animate={{ width: 150, opacity: 1 }}
+                                    exit={{ width: 0, opacity: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    value={seedText}
+                                    onChange={(e) => setSeedText(e.target.value)}
+                                    placeholder="Enter seed"
+                                    className="px-2 py-1 border rounded"
+                                  />
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          </Motion.div>
+                        )}
+                      </AnimatePresence>
+                      <AnimatePresence mode="popLayout">
+                        {lobbyMode === "join" && (
+                          <Motion.div
+                            layout
+                            key="join-mode"
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.2 }}
+                            className="flex flex-col items-center gap-4 w-full"
+                          >
+                            <Motion.input
+                              value={joinCode}
+                              onChange={(e) => setJoinCode(e.target.value)}
+                              placeholder="Enter join code"
+                              className="px-2 py-1 border rounded w-full"
+                              whileFocus={{ scale: 1.02 }}
+                              animate={joinInputControls}
+                            />
+                            <AnimatePresence>
+                              {joinCode && (
+                                <Motion.button
+                                  key="join-button"
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, y: 10 }}
+                                  transition={{ duration: 0.2 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  className="px-6 py-2 bg-green-400 rounded text-white font-bold"
+                                >
+                                  Join
+                                </Motion.button>
+                              )}
+                            </AnimatePresence>
+                          </Motion.div>
+                        )}
+                      </AnimatePresence>
+                    </Motion.div>
+                  )}
+                </AnimatePresence>
+              </Motion.div>
+            </Motion.div>
           </Motion.div>
         ) : (
           <Motion.div
