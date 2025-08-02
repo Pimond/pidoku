@@ -487,7 +487,7 @@ export default function Game() {
   return (
     <div className="p-4 flex flex-col items-center">
       <BackgroundProgress progress={progress} />
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="popLayout">
         {stage === "select" ? (
         <Motion.div
             key="select"
@@ -525,7 +525,7 @@ export default function Game() {
                 ))}
               </div>
               <Motion.div layout className="p-6 flex flex-col items-center">
-                <AnimatePresence mode="wait">
+                <AnimatePresence mode="popLayout">
                   {homeTab === "solo" ? (
                     <Motion.div
                       key="solo-tab"
@@ -619,9 +619,10 @@ export default function Game() {
                           </Motion.button>
                         ))}
                       </div>
-                      <AnimatePresence mode="wait">
+                      <AnimatePresence mode="popLayout">
                         {lobbyMode === "create" && (
                           <Motion.div
+                            layout
                             key="create-mode"
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -683,9 +684,10 @@ export default function Game() {
                           </Motion.div>
                         )}
                       </AnimatePresence>
-                      <AnimatePresence mode="wait">
+                      <AnimatePresence mode="popLayout">
                         {lobbyMode === "join" && (
                           <Motion.div
+                            layout
                             key="join-mode"
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
