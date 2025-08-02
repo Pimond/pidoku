@@ -15,6 +15,18 @@
   }
 }
 
+@keyframes aceternity-gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 .progress-wave {
   background: linear-gradient(90deg, rgba(59, 130, 246, 0.4), rgba(99, 102, 241, 0.4), rgba(59, 130, 246, 0.4));
   background-size: 200% 200%;
