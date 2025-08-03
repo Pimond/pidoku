@@ -2,12 +2,22 @@
 /* eslint-env node */
 /* global process */
 import admin from 'firebase-admin';
-import fetch from 'node-fetch';
 import dotenv from 'dotenv';
 import { createRequire } from 'module';
 
-// Express is CommonJS; importing via createRequire avoids interop issues
+// Express and some of its deps are CommonJS. Use createRequire and ensure
+// the "methods" package exports an array even when loaded in ESM contexts.
 const require = createRequire(import.meta.url);
+let methods = require('methods');
+if (!Array.isArray(methods)) {
+  // Some environments return an object with the array on a default property.
+  if (Array.isArray(methods.default)) {
+    methods = methods.default;
+  } else if (Array.isArray(methods.methods)) {
+    methods = methods.methods;
+  }
+  require.cache[require.resolve('methods')].exports = methods;
+}
 const express = require('express');
 
 dotenv.config();
@@ -17,11 +27,25 @@ app.use(express.json());
 
 // Initialize Firebase Admin SDK
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(
-      JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
-    ),
-  });
+  let credential;
+  const svc = process.env.FIREBASE_SERVICE_ACCOUNT;
+  if (svc) {
+    try {
+      credential = admin.credential.cert(JSON.parse(svc));
+    } catch (err) {
+      console.warn(
+        'Invalid FIREBASE_SERVICE_ACCOUNT, using application default credentials:',
+        err.message
+      );
+    }
+  }
+  try {
+    admin.initializeApp({
+      credential: credential || admin.credential.applicationDefault(),
+    });
+  } catch (err) {
+    console.warn('Failed to initialize Firebase Admin SDK:', err.message);
+  }
 }
 
 const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY;
