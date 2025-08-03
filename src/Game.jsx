@@ -11,6 +11,7 @@ import {
   useAnimationControls,
 } from "motion/react";
 import BackgroundProgress from "./components/BackgroundProgress.jsx";
+import LobbyView from "./components/LobbyView.jsx";
 
 async function createPuzzle(diff) {
   const next = generatePuzzle(diff);
@@ -116,6 +117,7 @@ export default function Game() {
   const [seedCopied, setSeedCopied] = useState(false);
   const [progress, setProgress] = useState(0);
   const [joinCode, setJoinCode] = useState("");
+  const [lobbyPlayers, setLobbyPlayers] = useState([]);
   const joinInputControls = useAnimationControls();
 
   useEffect(() => {
@@ -358,7 +360,18 @@ export default function Game() {
   }
 
   async function startLobby() {
-    const usedSeed = await startPuzzle();
+    let usedSeed;
+    let next = null;
+    if (seedInputMode && seedText) {
+      usedSeed = seedText;
+    } else {
+      next = await createPuzzle(difficulty);
+      usedSeed = next.seed;
+      setPuzzleData(next);
+    }
+    setSeed(usedSeed);
+    setSeedInputMode(false);
+    setSeedText("");
     if (!user) return;
     const res = await fetch('/api/lobbies', {
       method: 'POST',
@@ -370,7 +383,9 @@ export default function Game() {
     });
     if (res.ok) {
       const data = await res.json();
-      alert(`Lobby created! Join code: ${data.joinCode}`);
+      setJoinCode(data.joinCode);
+      setLobbyPlayers([user.uid]);
+      setStage('lobby');
     }
   }
 
@@ -380,6 +395,8 @@ export default function Game() {
     setPuzzleData(null);
     setSeed("");
     setGameId(null);
+    setJoinCode("");
+    setLobbyPlayers([]);
   }
 
   useEffect(() => {
@@ -754,6 +771,22 @@ export default function Game() {
                 </AnimatePresence>
               </Motion.div>
             </Motion.div>
+          </Motion.div>
+        ) : stage === "lobby" ? (
+          <Motion.div
+            key="lobby"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.2 }}
+            className="w-full max-w-md mt-10"
+          >
+            <LobbyView
+              joinCode={joinCode}
+              difficulty={difficulty}
+              seed={seed}
+              players={lobbyPlayers}
+            />
           </Motion.div>
         ) : (
           <Motion.div
