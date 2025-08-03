@@ -360,32 +360,30 @@ export default function Game() {
   }
 
   async function startLobby() {
-    let usedSeed;
-    let next = null;
-    if (seedInputMode && seedText) {
-      usedSeed = seedText;
-    } else {
-      next = await createPuzzle(difficulty);
-      usedSeed = next.seed;
-      setPuzzleData(next);
-    }
-    setSeed(usedSeed);
+    if (lobbyMode !== 'create' || !user) return;
+    const usedSeed = seedInputMode && seedText ? seedText : undefined;
     setSeedInputMode(false);
     setSeedText("");
-    if (!user) return;
-    const res = await fetch('/api/lobbies', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${user.token}`,
-      },
-      body: JSON.stringify({ hostUid: user.uid, difficulty, seed: usedSeed }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      setJoinCode(data.joinCode);
-      setLobbyPlayers([user.uid]);
-      setStage('lobby');
+    try {
+      const res = await fetch('/api/lobbies', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user.token}`,
+        },
+        body: JSON.stringify({ hostUid: user.uid, difficulty, seed: usedSeed }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setJoinCode(data.joinCode);
+        setLobbyPlayers([user.uid]);
+        setSeed(data.seed || usedSeed || "");
+        setStage('lobby');
+      } else {
+        console.error('Failed to create lobby');
+      }
+    } catch (err) {
+      console.error('Failed to create lobby', err);
     }
   }
 
