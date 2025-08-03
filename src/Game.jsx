@@ -387,6 +387,33 @@ export default function Game() {
     }
   }
 
+  async function joinLobby() {
+    if (lobbyMode !== 'join' || !user || !joinCode) return;
+    try {
+      const res = await fetch('/api/lobbies/join', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user.token}`,
+        },
+        body: JSON.stringify({ joinCode: joinCode.trim().toUpperCase() }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const lobby = data.lobby;
+        setDifficulty(lobby.difficulty);
+        setSeed(lobby.seed || '');
+        setLobbyPlayers(lobby.players);
+        setJoinCode(lobby.joinCode);
+        setStage('lobby');
+      } else {
+        console.error('Failed to join lobby');
+      }
+    } catch (err) {
+      console.error('Failed to join lobby', err);
+    }
+  }
+
   function resetToSelect() {
     setStage("select");
     setBoard(null);
@@ -755,6 +782,7 @@ export default function Game() {
                                   exit={{ opacity: 0, y: 10 }}
                                   transition={{ duration: 0.2 }}
                                   whileTap={{ scale: 0.95 }}
+                                  onClick={joinLobby}
                                   className="px-6 py-2 bg-green-400 rounded text-white font-bold"
                                 >
                                   Join
