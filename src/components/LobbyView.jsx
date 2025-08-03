@@ -4,10 +4,16 @@ import { motion as Motion, AnimatePresence } from "motion/react";
 export default function LobbyView({ joinCode, difficulty, seed, players, onStart }) {
   const [copied, setCopied] = useState(false);
 
-  function handleCopy() {
-    navigator.clipboard.writeText(joinCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  async function handleCopy() {
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(joinCode);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    } catch (err) {
+      console.error('Failed to copy join code', err);
+    }
   }
 
   return (
