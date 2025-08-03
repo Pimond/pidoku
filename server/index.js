@@ -1,10 +1,24 @@
 // server.js
 /* eslint-env node */
 /* global process */
-import express from 'express';
 import admin from 'firebase-admin';
-import fetch from 'node-fetch';
 import dotenv from 'dotenv';
+import { createRequire } from 'module';
+
+// Express and some of its deps are CommonJS. Use createRequire and ensure
+// the "methods" package exports an array even when loaded in ESM contexts.
+const require = createRequire(import.meta.url);
+let methods = require('methods');
+if (!Array.isArray(methods)) {
+  // Some environments return an object with the array on a default property.
+  if (Array.isArray(methods.default)) {
+    methods = methods.default;
+  } else if (Array.isArray(methods.methods)) {
+    methods = methods.methods;
+  }
+  require.cache[require.resolve('methods')].exports = methods;
+}
+const express = require('express');
 
 dotenv.config();
 
@@ -13,11 +27,25 @@ app.use(express.json());
 
 // Initialize Firebase Admin SDK
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(
-      JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
-    ),
-  });
+  let credential;
+  const svc = process.env.FIREBASE_SERVICE_ACCOUNT;
+  if (svc) {
+    try {
+      credential = admin.credential.cert(JSON.parse(svc));
+    } catch (err) {
+      console.warn(
+        'Invalid FIREBASE_SERVICE_ACCOUNT, using application default credentials:',
+        err.message
+      );
+    }
+  }
+  try {
+    admin.initializeApp({
+      credential: credential || admin.credential.applicationDefault(),
+    });
+  } catch (err) {
+    console.warn('Failed to initialize Firebase Admin SDK:', err.message);
+  }
 }
 
 const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY;
@@ -199,6 +227,59 @@ app.patch('/api/games/:id', async (req, res) => {
       .doc(req.params.id)
       .update(data);
     res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/lobbies
+app.post('/api/lobbies', async (req, res) => {
+  try {
+    const { hostUid, difficulty, seed } = req.body;
+    if (hostUid !== req.user.uid) {
+      return res.status(403).json({ error: 'Host UID mismatch' });
+    }
+
+    const lobbiesRef = admin.firestore().collection('lobbies');
+
+    let joinCode;
+    let exists = true;
+    while (exists) {
+      joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const snap = await lobbiesRef.doc(joinCode).get();
+      exists = snap.exists;
+    }
+
+    await lobbiesRef.doc(joinCode).set({
+      hostUid,
+      difficulty,
+      seed,
+      players: [hostUid],
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.json({ joinCode });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/lobbies/join
+app.post('/api/lobbies/join', async (req, res) => {
+  try {
+    const { joinCode } = req.body;
+    const lobbyRef = admin.firestore().collection('lobbies').doc(joinCode);
+    const snap = await lobbyRef.get();
+    if (!snap.exists) {
+      return res.status(404).json({ error: 'Invalid join code' });
+    }
+
+    await lobbyRef.update({
+      players: admin.firestore.FieldValue.arrayUnion(req.user.uid),
+    });
+
+    const updatedSnap = await lobbyRef.get();
+    res.json({ lobby: { joinCode, ...updatedSnap.data() } });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
