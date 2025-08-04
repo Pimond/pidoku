@@ -120,6 +120,7 @@ export default function Game() {
   const joinInputControls = useAnimationControls();
   const [showWinPopup, setShowWinPopup] = useState(false);
   const [showWrongPopup, setShowWrongPopup] = useState(false);
+  const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
 
   useEffect(() => {
     const seedParam = searchParams.get("seed");
@@ -131,6 +132,15 @@ export default function Game() {
       setStage("select");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    function handleResize() {
+      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    }
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   useEffect(() => {
@@ -806,33 +816,34 @@ export default function Game() {
             </button>
             <AnimatePresence>
               {showWinPopup && (
-                <Motion.div
-                  key="correct"
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none"
-                >
-                  <div className="bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2">
-                    <span className="text-2xl">🎉</span>
-                    <span className="font-semibold">You solved it!</span>
-                  </div>
+                <>
                   <Confetti
-                    height={window.innerHeight}
+                    width={windowSize.width}
+                    height={windowSize.height}
                     numberOfPieces={120}
                     recycle={false}
                     style={{
                       position: 'fixed',
                       top: 0,
                       left: 0,
-                      width: '100vw',
-                      height: '100vh',
                       zIndex: 40,
-                      pointerEvents: 'none'
+                      pointerEvents: 'none',
                     }}
                   />
-                </Motion.div>
+                  <Motion.div
+                    key="correct"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                    className="fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none"
+                  >
+                    <div className="bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2">
+                      <span className="text-2xl">🎉</span>
+                      <span className="font-semibold">You solved it!</span>
+                    </div>
+                  </Motion.div>
+                </>
               )}
               {showWrongPopup && (
                 <Motion.div
