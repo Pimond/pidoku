@@ -115,6 +115,7 @@ export default function Game() {
   const [gameId, setGameId] = useState(null);
   const [seedCopied, setSeedCopied] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [initialEmptyCells, setInitialEmptyCells] = useState(0);
   const [joinCode, setJoinCode] = useState("");
   const joinInputControls = useAnimationControls();
 
@@ -199,6 +200,10 @@ export default function Game() {
       const gdata = await resGame.json();
       setGameId(gdata.id);
     }
+    const emptyCount = puzzle.flat().filter((c) => !c.fixed).length;
+    const placedCount = boardData.flat().filter((c) => c.value && !c.fixed).length;
+    setInitialEmptyCells(emptyCount);
+    setProgress((placedCount / emptyCount) * 100);
     setBoard(boardData);
     setSecondsElapsed(secs);
     setSelected([null, null]);
@@ -328,6 +333,9 @@ export default function Game() {
         }))
       )
     );
+    const emptyCount = boardData.flat().filter((c) => !c.fixed).length;
+    setInitialEmptyCells(emptyCount);
+    setProgress(0);
     setBoard(boardData);
     setSelected([null, null]);
     setCompleted(false);
@@ -375,11 +383,15 @@ export default function Game() {
   }
 
   function resetToSelect() {
-    setStage("select");
-    setBoard(null);
-    setPuzzleData(null);
-    setSeed("");
-    setGameId(null);
+    setProgress(0);
+    setInitialEmptyCells(0);
+    setTimeout(() => {
+      setStage("select");
+      setBoard(null);
+      setPuzzleData(null);
+      setSeed("");
+      setGameId(null);
+    }, 300);
   }
 
   useEffect(() => {
@@ -401,9 +413,9 @@ export default function Game() {
 
   useEffect(() => {
     if (!board) return;
-    const filled = board.flat().filter((c) => c.value).length;
-    setProgress((filled / 81) * 100);
-  }, [board]);
+    const placed = board.flat().filter((c) => c.value && !c.fixed).length;
+    setProgress(initialEmptyCells ? (placed / initialEmptyCells) * 100 : 0);
+  }, [board, initialEmptyCells]);
 
   useEffect(() => {
     if (!timerActive) return;
@@ -507,7 +519,7 @@ export default function Game() {
 
   return (
     <div className="p-4 flex flex-col items-center">
-      <BackgroundProgress progress={progress} />
+      {stage === "play" && <BackgroundProgress progress={progress} />}
       <AnimatePresence mode="popLayout">
         {stage === "select" ? (
         <Motion.div

@@ -10,7 +10,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col ml-0 ">
-      <header className="p-4 flex items-center shadow bg-white">
+      <header className="sticky top-0 z-10 p-4 flex items-center shadow bg-white">
         <Link to="/" className="text-3xl font-bold">Pidoku</Link>
         <div className="ml-auto flex items-center">
           {user && (
