@@ -1,7 +1,14 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import PrettyProgressbar from 'pretty-progressbar';
 
 export default function BackgroundProgress({ progress }) {
+  const [offset, setOffset] = useState(0);
+
+  useEffect(() => {
+    const header = document.querySelector('header');
+    if (header) setOffset(header.offsetHeight);
+  }, []);
+
   const barStyle = {
     position: 'absolute',
     overflow: 'hidden',
@@ -18,7 +25,10 @@ export default function BackgroundProgress({ progress }) {
   };
 
   return (
-    <div className="fixed inset-0 z-0 pointer-events-none">
+    <div
+      className="fixed inset-x-0 z-0 pointer-events-none"
+      style={{ top: offset, bottom: 0 }}
+    >
       <PrettyProgressbar
         percentage={progress}
         label={false}
