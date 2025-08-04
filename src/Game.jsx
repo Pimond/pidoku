@@ -118,6 +118,8 @@ export default function Game() {
   const [initialEmptyCells, setInitialEmptyCells] = useState(0);
   const [joinCode, setJoinCode] = useState("");
   const joinInputControls = useAnimationControls();
+  const [showWinPopup, setShowWinPopup] = useState(false);
+  const [showWrongPopup, setShowWrongPopup] = useState(false);
 
   useEffect(() => {
     const seedParam = searchParams.get("seed");
@@ -463,6 +465,26 @@ export default function Game() {
   }, [completed, correct, user, secondsElapsed, recorded, gameId]);
 
   useEffect(() => {
+    if (completed && correct) {
+      setShowWinPopup(true);
+    } else if (completed && !correct) {
+      setShowWrongPopup(true);
+    }
+  }, [completed, correct]);
+
+  useEffect(() => {
+    if (!showWinPopup) return;
+    const t = setTimeout(() => setShowWinPopup(false), 4000);
+    return () => clearTimeout(t);
+  }, [showWinPopup]);
+
+  useEffect(() => {
+    if (!showWrongPopup) return;
+    const t = setTimeout(() => setShowWrongPopup(false), 4000);
+    return () => clearTimeout(t);
+  }, [showWrongPopup]);
+
+  useEffect(() => {
     if (!seedCopied) return;
     const t = setTimeout(() => setSeedCopied(false), 1500);
     return () => clearTimeout(t);
@@ -783,46 +805,48 @@ export default function Game() {
               New Puzzle
             </button>
             <AnimatePresence>
-              {completed && correct && (
-
+              {showWinPopup && (
                 <Motion.div
                   key="correct"
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: [1, 1, 1, 1, 1, 0], y: [0] }}
-                  transition={{ ease: "easeInOut", duration: 8 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="absolute -top-12 px-6 py-3 bg-green-200 text-green-800 rounded shadow text-xl font-bold"
-                  style={{
-                    zIndex: '1'
-                  }}
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none"
                 >
-
-                  🎉 You solved it!
-
+                  <div className="bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2">
+                    <span className="text-2xl">🎉</span>
+                    <span className="font-semibold">You solved it!</span>
+                  </div>
                   <Confetti
                     height={window.innerHeight}
-                    numberOfPieces={100}
+                    numberOfPieces={120}
                     recycle={false}
                     style={{
                       position: 'fixed',
                       top: 0,
                       left: 0,
                       width: '100vw',
-                      zIndex: '0'
+                      height: '100vh',
+                      zIndex: 40,
+                      pointerEvents: 'none'
                     }}
                   />
                 </Motion.div>
-
               )}
-              {completed && !correct && (
+              {showWrongPopup && (
                 <Motion.div
                   key="wrong"
-                  initial={{ opacity: 0, y: -10 }}
+                  initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="absolute -top-12 px-6 py-3 bg-red-200 text-red-800 rounded shadow text-xl font-bold"
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none"
                 >
-                  Puzzle is filled, but something's wrong!
+                  <div className="bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2">
+                    <span className="text-2xl">⚠️</span>
+                    <span className="font-semibold">Puzzle is filled, but something's wrong!</span>
+                  </div>
                 </Motion.div>
               )}
             </AnimatePresence>
