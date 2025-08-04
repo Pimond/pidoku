@@ -3,6 +3,7 @@
 /* global process */
 import admin from 'firebase-admin';
 import dotenv from 'dotenv';
+import cors from 'cors';
 import { createRequire } from 'module';
 
 // Express and some of its deps are CommonJS. Use createRequire and ensure
@@ -23,6 +24,8 @@ const express = require('express');
 dotenv.config();
 
 const app = express();
+app.use(cors());
+app.options('*', cors());
 app.use(express.json());
 
 // Initialize Firebase Admin SDK

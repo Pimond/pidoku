@@ -15,6 +15,7 @@
     "@tailwindcss/vite": "^4.1.11",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "cors": "^2.8.5",
     "firebase": "^9.23.0",
     "firebase-admin": "^11.10.1",
     "motion": "^12.23.3",
