@@ -12,6 +12,8 @@ import {
 } from "motion/react";
 import BackgroundProgress from "./components/BackgroundProgress.jsx";
 
+const POPUP_DURATION = 10000;
+
 async function createPuzzle(diff) {
   const next = generatePuzzle(diff);
   const puzzle = next.puzzle.map((row, r) =>
@@ -484,13 +486,13 @@ export default function Game() {
 
   useEffect(() => {
     if (!showWinPopup) return;
-    const t = setTimeout(() => setShowWinPopup(false), 4000);
+    const t = setTimeout(() => setShowWinPopup(false), POPUP_DURATION);
     return () => clearTimeout(t);
   }, [showWinPopup]);
 
   useEffect(() => {
     if (!showWrongPopup) return;
-    const t = setTimeout(() => setShowWrongPopup(false), 4000);
+    const t = setTimeout(() => setShowWrongPopup(false), POPUP_DURATION);
     return () => clearTimeout(t);
   }, [showWrongPopup]);
 
