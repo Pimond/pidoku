@@ -11,6 +11,7 @@ import {
   useAnimationControls,
 } from "motion/react";
 import BackgroundProgress from "./components/BackgroundProgress.jsx";
+import LobbyView from "./components/LobbyView.jsx";
 
 async function createPuzzle(diff) {
   const next = generatePuzzle(diff);
@@ -116,6 +117,7 @@ export default function Game() {
   const [seedCopied, setSeedCopied] = useState(false);
   const [progress, setProgress] = useState(0);
   const [joinCode, setJoinCode] = useState("");
+  const [lobbyPlayers, setLobbyPlayers] = useState([]);
   const joinInputControls = useAnimationControls();
 
   useEffect(() => {
@@ -358,19 +360,57 @@ export default function Game() {
   }
 
   async function startLobby() {
-    const usedSeed = await startPuzzle();
-    if (!user) return;
-    const res = await fetch('/api/lobbies', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${user.token}`,
-      },
-      body: JSON.stringify({ hostUid: user.uid, difficulty, seed: usedSeed }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      alert(`Lobby created! Join code: ${data.joinCode}`);
+    if (lobbyMode !== 'create' || !user) return;
+    const usedSeed = seedInputMode && seedText ? seedText : undefined;
+    setSeedInputMode(false);
+    setSeedText("");
+    try {
+      const res = await fetch('/api/lobbies', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user.token}`,
+        },
+        body: JSON.stringify({ hostUid: user.uid, difficulty, seed: usedSeed }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setJoinCode(data.joinCode);
+        setLobbyPlayers([user.uid]);
+        setSeed(data.seed || usedSeed || "");
+        setStage('lobby');
+      } else {
+        console.error('Failed to create lobby');
+      }
+    } catch (err) {
+      console.error('Failed to create lobby', err);
+    }
+  }
+
+  async function joinLobby() {
+    if (lobbyMode !== 'join' || !user || !joinCode) return;
+    try {
+      const res = await fetch('/api/lobbies/join', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user.token}`,
+        },
+        body: JSON.stringify({ joinCode: joinCode.trim().toUpperCase() }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const lobby = data.lobby;
+        setDifficulty(lobby.difficulty);
+        setSeed(lobby.seed || '');
+        setLobbyPlayers(lobby.players);
+        setJoinCode(lobby.joinCode);
+        setStage('lobby');
+      } else {
+        console.error('Failed to join lobby');
+      }
+    } catch (err) {
+      console.error('Failed to join lobby', err);
     }
   }
 
@@ -380,6 +420,8 @@ export default function Game() {
     setPuzzleData(null);
     setSeed("");
     setGameId(null);
+    setJoinCode("");
+    setLobbyPlayers([]);
   }
 
   useEffect(() => {
@@ -740,6 +782,7 @@ export default function Game() {
                                   exit={{ opacity: 0, y: 10 }}
                                   transition={{ duration: 0.2 }}
                                   whileTap={{ scale: 0.95 }}
+                                  onClick={joinLobby}
                                   className="px-6 py-2 bg-green-400 rounded text-white font-bold"
                                 >
                                   Join
@@ -754,6 +797,22 @@ export default function Game() {
                 </AnimatePresence>
               </Motion.div>
             </Motion.div>
+          </Motion.div>
+        ) : stage === "lobby" ? (
+          <Motion.div
+            key="lobby"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.2 }}
+            className="w-full max-w-md mt-10"
+          >
+            <LobbyView
+              joinCode={joinCode}
+              difficulty={difficulty}
+              seed={seed}
+              players={lobbyPlayers}
+            />
           </Motion.div>
         ) : (
           <Motion.div

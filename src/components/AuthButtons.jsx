@@ -30,7 +30,15 @@ export default function AuthButtons() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        console.error('Login response was not JSON:', text);
+        setError('Server error');
+        return;
+      }
       if (!res.ok) {
         setError(data.error || 'Authentication failed');
         return;
