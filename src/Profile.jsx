@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from './AuthProvider';
 import { motion as Motion } from 'motion/react';
 import { Link } from 'react-router-dom';
@@ -21,6 +21,15 @@ export default function Profile() {
     fetchGames();
   }, [user]);
 
+  const completedCount = useMemo(
+    () => games.filter((g) => g.completedAt).length,
+    [games]
+  );
+  const totalGames = games.length;
+  const completionRate = totalGames
+    ? Math.round((completedCount / totalGames) * 100)
+    : 0;
+
   if (!user) {
     return (
       <div className="p-4">
@@ -31,48 +40,90 @@ export default function Profile() {
   }
 
   return (
-    <div className="p-4 max-w-md mx-auto">
-      <h2 className="text-2xl font-bold mb-4">Profile</h2>
+    <div className="px-4 py-6 max-w-4xl mx-auto">
+      <div className="flex flex-col items-center mb-8">
+        <div className="w-24 h-24 rounded-full bg-gray-300 flex items-center justify-center text-3xl font-bold">
+          {user.uid.slice(0, 2).toUpperCase()}
+        </div>
+        <p className="mt-3 text-xl font-semibold break-all">{user.uid}</p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full mb-8">
+        <div className="border rounded-lg p-4 text-center">
+          <p className="text-2xl font-bold">{totalGames}</p>
+          <p className="text-sm text-gray-500">Total Games</p>
+        </div>
+        <div className="border rounded-lg p-4 text-center">
+          <p className="text-2xl font-bold">{completedCount}</p>
+          <p className="text-sm text-gray-500">Completed</p>
+        </div>
+        <div className="border rounded-lg p-4 text-center">
+          <p className="text-2xl font-bold">{completionRate}%</p>
+          <p className="text-sm text-gray-500">Completion Rate</p>
+        </div>
+      </div>
+
       {games.length === 0 ? (
-        <p>No game records yet.</p>
+        <p className="text-center">No game records yet.</p>
       ) : (
-        <ul className="space-y-2">
-          {games.map(game => (
-            <Motion.li
-              key={game.id}
-              initial={{ opacity: 0, translateY: -5 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              transition={{ duration: 0.2 }}
-              className={`p-2 rounded shadow ${
-                game.completed ? 'bg-green-100' : 'bg-blue-100'
-              }`}
-            >
-              <div className="flex justify-between items-center">
-                <div>
-                  <span className="font-semibold mr-2">{game.difficulty}</span>
-                  {game.completed ? (
-                    <span>{Math.floor(game.time / 60)}m {game.time % 60}s</span>
-                  ) : (
-                    <span className="italic">(In-Progress)</span>
-                  )}
-                </div>
-                <Link
-                  className="text-blue-600 underline text-sm"
-                  to={`/?seed=${game.puzzleSeed}&game=${game.id}`}
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-left border rounded-lg overflow-hidden">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="px-4 py-2">Date</th>
+                <th className="px-4 py-2">Difficulty</th>
+                <th className="px-4 py-2">Status</th>
+                <th className="px-4 py-2">Time</th>
+                <th className="px-4 py-2"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {games.map((game) => (
+                <Motion.tr
+                  key={game.id}
+                  initial={{ opacity: 0, translateY: -5 }}
+                  animate={{ opacity: 1, translateY: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="border-t last:border-b"
                 >
-                  {game.completed ? 'View' : 'Resume'}
-                </Link>
-              </div>
-              {game.completedAt?.toDate && (
-                <div className="text-xs text-gray-500 mt-1">
-                  {game.completedAt.toDate().toLocaleString()}
-                </div>
-              )}
-            </Motion.li>
-          ))}
-        </ul>
+                  <td className="px-4 py-2">
+                    {game.completedAt?.toDate
+                      ? game.completedAt
+                          .toDate()
+                          .toLocaleDateString()
+                      : game.createdAt?.toDate
+                      ? game.createdAt.toDate().toLocaleDateString()
+                      : '-'}
+                  </td>
+                  <td className="px-4 py-2 capitalize">
+                    {game.difficulty}
+                  </td>
+                  <td className="px-4 py-2">
+                    {game.completedAt ? 'Completed' : 'In Progress'}
+                  </td>
+                  <td className="px-4 py-2">
+                    {game.time
+                      ? `${Math.floor(game.time / 60)}m ${game.time % 60}s`
+                      : '-'}
+                  </td>
+                  <td className="px-4 py-2">
+                    <Link
+                      className="text-blue-600 underline text-sm"
+                      to={`/?seed=${game.puzzleSeed}&game=${game.id}`}
+                    >
+                      {game.completedAt ? 'View' : 'Resume'}
+                    </Link>
+                  </td>
+                </Motion.tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
-      <Link className="block mt-6 underline" to="/">Back to Game</Link>
+
+      <Link className="block mt-6 underline text-center" to="/">
+        Back to Game
+      </Link>
     </div>
   );
 }
