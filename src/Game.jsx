@@ -12,6 +12,8 @@ import {
 } from "motion/react";
 import BackgroundProgress from "./components/BackgroundProgress.jsx";
 
+const POPUP_DURATION = 10000;
+
 async function createPuzzle(diff) {
   const next = generatePuzzle(diff);
   const puzzle = next.puzzle.map((row, r) =>
@@ -118,6 +120,9 @@ export default function Game() {
   const [initialEmptyCells, setInitialEmptyCells] = useState(0);
   const [joinCode, setJoinCode] = useState("");
   const joinInputControls = useAnimationControls();
+  const [showWinPopup, setShowWinPopup] = useState(false);
+  const [showWrongPopup, setShowWrongPopup] = useState(false);
+  const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
 
   useEffect(() => {
     const seedParam = searchParams.get("seed");
@@ -129,6 +134,15 @@ export default function Game() {
       setStage("select");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    function handleResize() {
+      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    }
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   useEffect(() => {
@@ -463,6 +477,26 @@ export default function Game() {
   }, [completed, correct, user, secondsElapsed, recorded, gameId]);
 
   useEffect(() => {
+    if (completed && correct) {
+      setShowWinPopup(true);
+    } else if (completed && !correct) {
+      setShowWrongPopup(true);
+    }
+  }, [completed, correct]);
+
+  useEffect(() => {
+    if (!showWinPopup) return;
+    const t = setTimeout(() => setShowWinPopup(false), POPUP_DURATION);
+    return () => clearTimeout(t);
+  }, [showWinPopup]);
+
+  useEffect(() => {
+    if (!showWrongPopup) return;
+    const t = setTimeout(() => setShowWrongPopup(false), POPUP_DURATION);
+    return () => clearTimeout(t);
+  }, [showWrongPopup]);
+
+  useEffect(() => {
     if (!seedCopied) return;
     const t = setTimeout(() => setSeedCopied(false), 1500);
     return () => clearTimeout(t);
@@ -783,46 +817,49 @@ export default function Game() {
               New Puzzle
             </button>
             <AnimatePresence>
-              {completed && correct && (
-
-                <Motion.div
-                  key="correct"
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: [1, 1, 1, 1, 1, 0], y: [0] }}
-                  transition={{ ease: "easeInOut", duration: 8 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="absolute -top-12 px-6 py-3 bg-green-200 text-green-800 rounded shadow text-xl font-bold"
-                  style={{
-                    zIndex: '1'
-                  }}
-                >
-
-                  🎉 You solved it!
-
+              {showWinPopup && (
+                <>
                   <Confetti
-                    height={window.innerHeight}
-                    numberOfPieces={100}
+                    width={windowSize.width}
+                    height={windowSize.height}
+                    numberOfPieces={120}
                     recycle={false}
                     style={{
                       position: 'fixed',
                       top: 0,
                       left: 0,
-                      width: '100vw',
-                      zIndex: '0'
+                      zIndex: 40,
+                      pointerEvents: 'none',
                     }}
                   />
-                </Motion.div>
-
+                  <Motion.div
+                    key="correct"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                    className="fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none"
+                  >
+                    <div className="bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2">
+                      <span className="text-2xl">🎉</span>
+                      <span className="font-semibold">You solved it!</span>
+                    </div>
+                  </Motion.div>
+                </>
               )}
-              {completed && !correct && (
+              {showWrongPopup && (
                 <Motion.div
                   key="wrong"
-                  initial={{ opacity: 0, y: -10 }}
+                  initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="absolute -top-12 px-6 py-3 bg-red-200 text-red-800 rounded shadow text-xl font-bold"
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none"
                 >
-                  Puzzle is filled, but something's wrong!
+                  <div className="bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2">
+                    <span className="text-2xl">⚠️</span>
+                    <span className="font-semibold">Puzzle is filled, but something's wrong!</span>
+                  </div>
                 </Motion.div>
               )}
             </AnimatePresence>
