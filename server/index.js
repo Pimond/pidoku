@@ -267,6 +267,21 @@ app.post('/api/lobbies', async (req, res) => {
   }
 });
 
+// GET /api/lobbies/:joinCode
+app.get('/api/lobbies/:joinCode', async (req, res) => {
+  try {
+    const code = req.params.joinCode.toUpperCase();
+    const lobbyRef = admin.firestore().collection('lobbies').doc(code);
+    const snap = await lobbyRef.get();
+    if (!snap.exists) {
+      return res.status(404).json({ error: 'Invalid join code' });
+    }
+    res.json({ lobby: { joinCode: code, ...snap.data() } });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/lobbies/join
 app.post('/api/lobbies/join', async (req, res) => {
   try {

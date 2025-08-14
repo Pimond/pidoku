@@ -11,6 +11,7 @@ import {
   useAnimationControls,
 } from "motion/react";
 import BackgroundProgress from "./components/BackgroundProgress.jsx";
+import LobbyView from "./components/LobbyView.jsx";
 
 const POPUP_DURATION = 10000;
 
@@ -120,6 +121,10 @@ export default function Game() {
   const [initialEmptyCells, setInitialEmptyCells] = useState(0);
   const [joinCode, setJoinCode] = useState("");
   const joinInputControls = useAnimationControls();
+  const [lobby, setLobby] = useState(null);
+  const [lobbyPreview, setLobbyPreview] = useState(null);
+  const [ready, setReady] = useState(false);
+  const [countdown, setCountdown] = useState(null);
   const [showWinPopup, setShowWinPopup] = useState(false);
   const [showWrongPopup, setShowWrongPopup] = useState(false);
   const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
@@ -150,6 +155,20 @@ export default function Game() {
       joinInputControls.start({ scale: [1, 1.05, 1] });
     }
   }, [joinCode, lobbyMode, joinInputControls]);
+
+  useEffect(() => {
+    if (lobbyMode !== "join" || !joinCode) {
+      setLobbyPreview(null);
+      return;
+    }
+    const code = joinCode.toUpperCase();
+    fetch(`/api/lobbies/${code}`, {
+      headers: { Authorization: user ? `Bearer ${user.token}` : '' },
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setLobbyPreview(data ? data.lobby : null))
+      .catch(() => setLobbyPreview(null));
+  }, [joinCode, lobbyMode, user]);
 
   async function loadSeed(seedValue, gameValue) {
     const resPuzzle = await fetch(`/api/puzzles/${seedValue}`, {
@@ -380,7 +399,10 @@ export default function Game() {
   }
 
   async function startLobby() {
-    const usedSeed = await startPuzzle();
+    const next = await createPuzzle(difficulty);
+    const seedValue = next.seed;
+    setPuzzleData(next);
+    setSeed(seedValue);
     if (!user) return;
     const res = await fetch('/api/lobbies', {
       method: 'POST',
@@ -388,12 +410,63 @@ export default function Game() {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${user.token}`,
       },
-      body: JSON.stringify({ hostUid: user.uid, difficulty, seed: usedSeed }),
+      body: JSON.stringify({ hostUid: user.uid, difficulty, seed: seedValue }),
     });
     if (res.ok) {
       const data = await res.json();
-      alert(`Lobby created! Join code: ${data.joinCode}`);
+      setLobby({
+        joinCode: data.joinCode,
+        hostUid: user.uid,
+        difficulty,
+        seed: seedValue,
+        players: [user.uid],
+      });
+      setStage('lobby');
     }
+  }
+
+  async function handleJoinLobby() {
+    if (!user || !joinCode) return;
+    const res = await fetch('/api/lobbies/join', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${user.token}`,
+      },
+      body: JSON.stringify({ joinCode }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setLobby(data.lobby);
+      setStage('lobby');
+    }
+  }
+
+  function toggleReady() {
+    setReady((r) => !r);
+  }
+
+  function handleStartGame() {
+    if (!lobby) return;
+    setCountdown(5);
+    const interval = setInterval(() => {
+      setCountdown((c) => {
+        if (c === 1) {
+          clearInterval(interval);
+          loadSeed(lobby.seed);
+          return 0;
+        }
+        return c - 1;
+      });
+    }, 1000);
+  }
+
+  function leaveLobby() {
+    setLobby(null);
+    setLobbyPreview(null);
+    setReady(false);
+    setCountdown(null);
+    setStage('select');
   }
 
   function resetToSelect() {
@@ -405,6 +478,10 @@ export default function Game() {
       setPuzzleData(null);
       setSeed("");
       setGameId(null);
+      setLobby(null);
+      setLobbyPreview(null);
+      setReady(false);
+      setCountdown(null);
     }, 300);
   }
 
@@ -555,8 +632,8 @@ export default function Game() {
     <div className="p-4 flex flex-col items-center">
       {stage === "play" && <BackgroundProgress progress={progress} />}
       <AnimatePresence mode="popLayout">
-        {stage === "select" ? (
-        <Motion.div
+        {stage === "select" && (
+          <Motion.div
             key="select"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -771,25 +848,32 @@ export default function Game() {
                           >
                             <Motion.input
                               value={joinCode}
-                              onChange={(e) => setJoinCode(e.target.value)}
+                              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
                               placeholder="Enter join code"
                               className="px-2 py-1 border rounded w-full"
                               whileFocus={{ scale: 1.02 }}
                               animate={joinInputControls}
                             />
                             <AnimatePresence>
-                              {joinCode && (
-                                <Motion.button
-                                  key="join-button"
+                              {lobbyPreview && (
+                                <Motion.div
+                                  key="lobby-preview"
                                   initial={{ opacity: 0, y: 10 }}
                                   animate={{ opacity: 1, y: 0 }}
                                   exit={{ opacity: 0, y: 10 }}
                                   transition={{ duration: 0.2 }}
-                                  whileTap={{ scale: 0.95 }}
-                                  className="px-6 py-2 bg-green-400 rounded text-white font-bold"
+                                  className="w-full p-4 bg-gray-100 rounded shadow flex flex-col items-center gap-2"
                                 >
-                                  Join
-                                </Motion.button>
+                                  <div>Players: {lobbyPreview.players.length}</div>
+                                  <div>Difficulty: {lobbyPreview.difficulty}</div>
+                                  <Motion.button
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={handleJoinLobby}
+                                    className="px-6 py-2 bg-green-400 rounded text-white font-bold"
+                                  >
+                                    Join
+                                  </Motion.button>
+                                </Motion.div>
                               )}
                             </AnimatePresence>
                           </Motion.div>
@@ -801,7 +885,29 @@ export default function Game() {
               </Motion.div>
             </Motion.div>
           </Motion.div>
-        ) : (
+        )}
+        {stage === "lobby" && (
+          <Motion.div
+            key="lobby-view"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.2 }}
+            className="w-full max-w-md mt-10 flex justify-center"
+          >
+            <LobbyView
+              lobby={lobby}
+              currentUid={user ? user.uid : null}
+              ready={ready}
+              onReady={toggleReady}
+              onStart={handleStartGame}
+              onLeave={leaveLobby}
+              countdown={countdown}
+              showControls
+            />
+          </Motion.div>
+        )}
+        {stage === "play" && (
           <Motion.div
             key="game"
             initial={{ opacity: 0 }}
@@ -906,6 +1012,16 @@ export default function Game() {
                     </Motion.span>
                   )}
                 </AnimatePresence>
+              </div>
+            )}
+            {lobby && (
+              <div className="mt-6 w-full max-w-md">
+                <LobbyView
+                  lobby={lobby}
+                  currentUid={user ? user.uid : null}
+                  progress={progress}
+                  showControls={false}
+                />
               </div>
             )}
           </Motion.div>
